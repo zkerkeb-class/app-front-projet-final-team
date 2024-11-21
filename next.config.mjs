@@ -1,9 +1,11 @@
+import withPWA from 'next-pwa';
+
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  onDemandEntries: {
-    maxInactiveAge: 25 * 1000,
-    pagesBufferLength: 2,
-  },
-}
+const nextConfig = withPWA({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
 
 export default nextConfig;
