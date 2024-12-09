@@ -6,6 +6,9 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development', // Désactiver PWA en développement
 });
 
+const { i18n } = require('./next-i18next.config');
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true, // Mode strict de React

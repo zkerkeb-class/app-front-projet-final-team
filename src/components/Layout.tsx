@@ -1,7 +1,12 @@
+import { ReactNode } from 'react';
 import { useTranslation } from 'next-i18next';
 import LanguageSwitcher from './i18n';
 
-export default function Layout({ children }) {
+interface LayoutProps {
+  children: ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
   const { t } = useTranslation('common');
 
   return (
