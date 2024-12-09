@@ -3,6 +3,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import LatestReleases from '@/components/home/LatestReleases';
 import PopularArtists from '@/components/home/PopularArtists';
+import LatestAlbums from '@/components/home/LatestAlbums';
 
 export async function getStaticProps({ locale }: { locale: string }) {
   return {
@@ -30,7 +31,7 @@ export default function Home() {
         <section className="space-y-12">
           <LatestReleases />
           <PopularArtists />
-          {/* <LatestAlbums /> */}
+          <LatestAlbums />
         </section>
       </main>
     </>
