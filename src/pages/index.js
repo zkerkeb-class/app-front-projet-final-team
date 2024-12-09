@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'next-i18next';
 import LanguageSwitcher from '../components/i18n';
 
 export async function getStaticProps({ locale }) {
@@ -23,8 +23,6 @@ export default function Home() {
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <LanguageSwitcher />
-      <h1>{t('welcome')}</h1>
     </>
   );
 }

@@ -1,4 +1,14 @@
 {
-    "welcome": "Bienvenue sur ZakHarmony!"
+  "welcome": "Bienvenue sur ZakHarmony!",
+  "language": "Langue",
+  "menu": {
+    "home": "Accueil",
+    "profile": "Profil",
+    "settings": "Paramètres"
+  },
+  "actions": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "confirm": "Confirmer"
   }
-  
+}
