@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import LatestReleases from '@/components/home/LatestReleases';
 import PopularArtists from '@/components/home/PopularArtists';
 import LatestAlbums from '@/components/home/LatestAlbums';
+import AudioPlayer from '@/components/AudioPlayer';
 
 export async function getStaticProps({ locale }: { locale: string }) {
   return {
@@ -33,6 +34,12 @@ export default function Home() {
           <PopularArtists />
           <LatestAlbums />
         </section>
+        <AudioPlayer
+          src="/the_line_top.m4a"
+          title="The Line"
+          artist="Twenty One Pilots"
+          coverUrl="/arcane.jpg"
+        />
       </main>
     </>
   );
