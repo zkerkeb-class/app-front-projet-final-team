@@ -3,28 +3,31 @@ import { FixedSizeList as List } from 'react-window';
 import { useRef, useState, useEffect } from 'react';
 
 /**
- * Interface for track data
+ * Interface for artist data
  */
-interface Track {
+interface Artist {
   id: string;
-  title: string;
-  artist: string;
-  coverUrl: string;
-  duration: string;
+  name: string;
+  imageUrl: string;
+  followers: number;
+  genres: string[];
 }
 
-export default function LatestReleases() {
+export default function PopularArtists() {
   const { t } = useTranslation('common');
   const listRef = useRef<HTMLDivElement>(null);
   const [listWidth, setListWidth] = useState(0);
 
   // Mock data for development
-  const mockTracks: Track[] = Array.from({ length: 40 }, (_, i) => ({
-    id: `track-${i}`,
-    title: `Titre ${i + 1}`,
-    artist: `Artiste ${i + 1}`,
-    coverUrl: `https://picsum.photos/200/200?random=${i}`,
-    duration: '3:30',
+  const mockArtists: Artist[] = Array.from({ length: 40 }, (_, i) => ({
+    id: `artist-${i}`,
+    name: `Artiste ${i + 1}`,
+    imageUrl: `https://picsum.photos/200/200?random=${i + 100}`,
+    followers: Math.floor(Math.random() * 1000000),
+    genres: ['Pop', 'Rock', 'Hip-hop'].slice(
+      0,
+      Math.floor(Math.random() * 3) + 1,
+    ),
   }));
 
   useEffect(() => {
@@ -49,22 +52,32 @@ export default function LatestReleases() {
     index: number;
     style: React.CSSProperties;
   }) => {
-    const track = mockTracks[index];
+    const artist = mockArtists[index];
     return (
       <div style={style} className="p-2">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105">
           <img
-            src={track.coverUrl}
-            alt={track.title}
+            src={artist.imageUrl}
+            alt={artist.name}
             className="w-full h-32 object-cover"
           />
           <div className="p-3">
             <h3 className="font-semibold text-gray-800 dark:text-white truncate">
-              {track.title}
+              {artist.name}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              {track.artist}
+              {new Intl.NumberFormat().format(artist.followers)} followers
             </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {artist.genres.map((genre) => (
+                <span
+                  key={genre}
+                  className="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -76,7 +89,7 @@ export default function LatestReleases() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold dark:text-white">
-            {t('home.latestReleases')}
+            {t('home.popularArtists')}
           </h2>
           <button className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300">
             {t('home.seeAll')}
@@ -84,8 +97,8 @@ export default function LatestReleases() {
         </div>
         <div ref={listRef} className="relative h-[250px]">
           <div className="flex space-x-4 overflow-x-auto">
-            {mockTracks.map((track) => (
-              <div key={track.id} className="w-48 flex-shrink-0">
+            {mockArtists.slice(0, 5).map((artist) => (
+              <div key={artist.id} className="w-48 flex-shrink-0">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                   <div className="w-full h-32 bg-gray-200 dark:bg-gray-700 animate-pulse" />
                   <div className="p-3">
@@ -105,7 +118,7 @@ export default function LatestReleases() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold dark:text-white">
-          {t('home.latestReleases')}
+          {t('home.popularArtists')}
         </h2>
         <button className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300">
           {t('home.seeAll')}
@@ -115,7 +128,7 @@ export default function LatestReleases() {
       <div ref={listRef} className="relative h-[250px]">
         <List
           height={250}
-          itemCount={mockTracks.length}
+          itemCount={mockArtists.length}
           itemSize={200}
           layout="horizontal"
           width={listWidth}

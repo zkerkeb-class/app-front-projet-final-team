@@ -13,6 +13,8 @@
     },
     "home": {
         "latestReleases": "Latest Releases",
-        "seeAll": "See All"
+        "seeAll": "See All",
+        "popularArtists": "Popular Artists",
+        "latestAlbums": "Latest Albums"
     }
 }

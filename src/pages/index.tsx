@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import LatestReleases from '@/components/home/LatestReleases';
+import PopularArtists from '@/components/home/PopularArtists';
 
 export async function getStaticProps({ locale }: { locale: string }) {
   return {
@@ -28,8 +29,8 @@ export default function Home() {
       <main className="container mx-auto px-4 py-8">
         <section className="space-y-12">
           <LatestReleases />
-          {/* <PopularArtists />
-          <LatestAlbums /> */}
+          <PopularArtists />
+          {/* <LatestAlbums /> */}
         </section>
       </main>
     </>

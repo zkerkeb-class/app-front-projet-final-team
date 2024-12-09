@@ -13,6 +13,8 @@
   },
   "home": {
     "latestReleases": "Dernières sorties",
-    "seeAll": "Voir tout"
+    "seeAll": "Voir tout",
+    "popularArtists": "Artistes populaires",
+    "latestAlbums": "Albums récents"
   }
 }
