@@ -1,9 +1,14 @@
 import { useRouter } from 'next/router';
-import { useTranslation } from 'next-i18next';
+import Select from '../common/Select';
 
 export default function LanguageSwitcher() {
   const router = useRouter();
-  const { t } = useTranslation('common');
+
+  const languageOptions = [
+    { value: 'fr', label: 'Français' },
+    { value: 'en', label: 'English' },
+    { value: 'ar', label: 'العربية' },
+  ];
 
   const changeLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const locale = e.target.value;
@@ -11,18 +16,12 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor="language-select">{t('language')}:</label>
-      <select
-        id="language-select"
-        onChange={changeLanguage}
-        defaultValue={router.locale}
-        className="p-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="fr">Français</option>
-        <option value="en">English</option>
-        <option value="ar">العربية</option>
-      </select>
-    </div>
+    <Select
+      id="language-select"
+      options={languageOptions}
+      onChange={changeLanguage}
+      defaultValue={router.locale}
+      className="min-w-[120px]"
+    />
   );
 }
