@@ -5,7 +5,7 @@ export default function LanguageSwitcher() {
   const router = useRouter();
   const { t } = useTranslation('common');
 
-  const changeLanguage = (e) => {
+  const changeLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const locale = e.target.value;
     router.push(router.pathname, router.asPath, { locale });
   };
