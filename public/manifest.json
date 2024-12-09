@@ -1,7 +1,7 @@
 {
-    "name": "زاكهارموني",
+    "name": "ZakHarmony",
     "short_name": "ZakHarmony",
-    "description": "Spotify be like",
+    "description": "Votre plateforme musicale",
     "start_url": "/",
     "background_color": "#ffffff",
     "theme_color": "#000000",
