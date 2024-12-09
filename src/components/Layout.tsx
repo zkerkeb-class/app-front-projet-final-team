@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { useTranslation } from 'next-i18next';
 import LanguageSwitcher from './i18n';
 import { useTheme } from '../hooks/useTheme';
+import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,7 +24,11 @@ export default function Layout({ children }: LayoutProps) {
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
-              {isDarkMode ? '☀️' : '🌙'}
+              {isDarkMode ? (
+                <SunIcon className="h-5 w-5" />
+              ) : (
+                <MoonIcon className="h-5 w-5" />
+              )}
             </button>
             <LanguageSwitcher />
           </div>

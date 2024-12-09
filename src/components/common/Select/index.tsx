@@ -1,5 +1,5 @@
 import { SelectHTMLAttributes, forwardRef } from 'react';
-
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 interface Option {
   value: string;
   label: string;
@@ -47,19 +47,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ))}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <svg
-              className="w-4 h-4 text-gray-500 dark:text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <ChevronDownIcon className="h-5 w-5" />
           </div>
         </div>
       </div>
