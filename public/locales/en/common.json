@@ -10,5 +10,11 @@
         "save": "Save",
         "cancel": "Cancel",
         "confirm": "Confirm"
+    },
+    "home": {
+        "latestReleases": "Latest Releases",
+        "seeAll": "See All",
+        "popularArtists": "Popular Artists",
+        "latestAlbums": "Latest Albums"
     }
 }
