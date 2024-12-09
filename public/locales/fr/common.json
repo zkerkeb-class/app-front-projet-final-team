@@ -10,5 +10,9 @@
     "save": "Sauvegarder",
     "cancel": "Annuler",
     "confirm": "Confirmer"
+  },
+  "home": {
+    "latestReleases": "Dernières sorties",
+    "seeAll": "Voir tout"
   }
 }
