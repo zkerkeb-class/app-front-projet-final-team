@@ -16,5 +16,14 @@
     "seeAll": "Voir tout",
     "popularArtists": "Artistes populaires",
     "latestAlbums": "Albums récents"
+  },
+  "footer": {
+    "description": "Votre plateforme de streaming musical préférée",
+    "links": "Liens utiles",
+    "about": "À propos",
+    "contact": "Contact",
+    "terms": "Conditions d'utilisation",
+    "social": "Réseaux sociaux",
+    "rights": "Tous droits réservés."
   }
 }
