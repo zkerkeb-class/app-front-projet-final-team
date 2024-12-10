@@ -79,8 +79,12 @@ export default function AudioVisualizer({
   return (
     <canvas
       ref={canvasRef}
-      className="absolute top-0 left-0 w-full h-full -z-10"
-      style={{ filter: 'blur(30px)' }}
+      className="absolute top-0 left-0 w-full h-full -z-10 overflow-hidden"
+      style={{
+        filter: 'blur(30px)',
+        transform: 'scale(1.2)',
+        clipPath: 'inset(0)',
+      }}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   PlayIcon,
   PauseIcon,
@@ -25,6 +25,20 @@ export default function AudioPlayer() {
   const [isRepeat, setIsRepeat] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDraggingProgress, setIsDraggingProgress] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+
+    if (audioRef.current) {
+      audioRef.current.load();
+      if (isPlaying) {
+        audioRef.current.play();
+      }
+    }
+  }, [currentTrack.src]);
 
   const togglePlay = () => {
     if (audioRef.current) {
@@ -82,6 +96,28 @@ export default function AudioPlayer() {
 
   const handlePrevious = () => {
     console.log('Previous track');
+  };
+
+  const handleProgressMouseDown = () => {
+    setIsDraggingProgress(true);
+    setDragProgress(currentTime);
+  };
+
+  const handleProgressMouseUp = () => {
+    if (audioRef.current && isDraggingProgress) {
+      audioRef.current.currentTime = dragProgress;
+      setCurrentTime(dragProgress);
+    }
+    setIsDraggingProgress(false);
+  };
+
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    setDragProgress(value);
+    setCurrentTime(value);
+    if (!isDraggingProgress && audioRef.current) {
+      audioRef.current.currentTime = value;
+    }
   };
 
   if (!currentTrack) return null;
@@ -200,12 +236,12 @@ export default function AudioPlayer() {
               type="range"
               min={0}
               max={duration}
-              value={currentTime}
-              onChange={(e) => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = Number(e.target.value);
-                }
-              }}
+              value={isDraggingProgress ? dragProgress : currentTime}
+              onChange={handleProgressChange}
+              onMouseDown={handleProgressMouseDown}
+              onMouseUp={handleProgressMouseUp}
+              onTouchStart={handleProgressMouseDown}
+              onTouchEnd={handleProgressMouseUp}
               className="w-full"
             />
             <span className="text-xs text-gray-600 dark:text-gray-400 min-w-[40px]">

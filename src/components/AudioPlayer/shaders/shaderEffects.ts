@@ -149,7 +149,7 @@ export const initializeShader = (
   }
 
   // Vérifier la différence entre les couleurs
-  const minDifference = 0.3; // Seuil minimum de différence
+  const minDifference = 0.1; // Seuil minimum de différence
   const needsFallback = colorArrays.some((color1, i) =>
     colorArrays.some(
       (color2, j) =>
