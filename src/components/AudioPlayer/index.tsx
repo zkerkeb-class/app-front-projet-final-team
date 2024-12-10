@@ -30,6 +30,7 @@ export default function AudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [previousVolume, setPreviousVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
@@ -65,10 +66,16 @@ export default function AudioPlayer({
       audioRef.current.volume = newVolume;
     }
   };
-
   const toggleMute = () => {
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
+      if (!isMuted) {
+        setPreviousVolume(volume);
+        audioRef.current.volume = 0;
+        setVolume(0);
+      } else {
+        audioRef.current.volume = previousVolume;
+        setVolume(previousVolume);
+      }
       setIsMuted(!isMuted);
     }
   };
