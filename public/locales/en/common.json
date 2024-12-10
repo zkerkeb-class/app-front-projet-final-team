@@ -16,5 +16,11 @@
         "seeAll": "See All",
         "popularArtists": "Popular Artists",
         "latestAlbums": "Latest Albums"
+    },
+    "library": {
+        "title": "Library",
+        "albums": "Albums",
+        "artists": "Artists",
+        "playlists": "Playlists"
     }
 }

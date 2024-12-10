@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { AudioProvider } from '@/contexts/AudioContext';
 import AudioPlayer from './AudioPlayer';
+import LibrarySidebar from './LibrarySidebar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
     <AudioProvider>
       <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
         <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 flex flex-col">
-          <header className="p-4 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+          <header className="p-4 flex justify-between items-center ">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {t('welcome')}
             </h1>
@@ -37,9 +38,13 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </header>
 
-          <main className="container mx-auto px-4 text-gray-900 dark:text-white flex-grow pb-24">
-            {children}
-          </main>
+          <div className="flex flex-1 overflow-hidden">
+            <div className="py-4 px-2 relative">
+              <LibrarySidebar />
+            </div>
+            <main className={`flex-1 overflow-y-auto p-4`}>{children}</main>
+          </div>
+
           <AudioPlayer />
 
           <footer className="bg-gray-50 dark:bg-gray-800 py-8 mt-auto">
