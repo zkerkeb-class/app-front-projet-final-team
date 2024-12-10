@@ -11,7 +11,7 @@ const vertexShader = `
 
 const fragmentShader = `
   precision mediump float;
-  uniform vec3 colors[3];
+  uniform vec3 colors[2];
   uniform float time;
   uniform vec2 resolution;
   uniform float audioIntensity;
@@ -22,40 +22,27 @@ const fragmentShader = `
     return fract(sin(h) * 43758.5453123);
   }
   
-  // Perlin noise function
   float noise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
-    
     f = f * f * (3.0 - 2.0 * f);
-    
     float a = hash(i);
     float b = hash(i + vec2(1.0, 0.0));
     float c = hash(i + vec2(0.0, 1.0));
     float d = hash(i + vec2(1.0, 1.0));
-    
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
   
   void main() {
     vec2 uv = vUv;
+    float noiseValue = noise(uv * 3.0 + time * 0.2) * 2.0 - 1.0;
     
-    // Add noise to the base movement
-    float noiseValue = noise(uv * 5.0 + time * 0.5) * 2.0 - 1.0;
+    // Créer un dégradé dynamique entre les deux couleurs
+    float gradient = uv.y + sin(uv.x * 4.0 + time + noiseValue) * 0.2;
+    gradient = gradient + audioIntensity * noise(uv * 5.0 + time) * 0.3;
     
-    // Base movement modulated by audio intensity and noise
-    float movement = sin(uv.x * 2.0 + time + noiseValue) * 0.5 + 0.5;
-    movement *= sin(uv.y * 2.0 + time * 0.5 + noiseValue) * 0.5 + 0.5;
-    
-    // Add modulation based on audio intensity and noise
-    movement += audioIntensity * 0.2 * sin(uv.x * 10.0 + time * 2.0 + noiseValue * 3.0);
-    
-    // Mix colors with influence of audio and noise
-    vec3 color = mix(
-      mix(colors[0], colors[1], movement),
-      colors[2],
-      sin(time * 0.2 + audioIntensity + noiseValue) * 0.5 + 0.5
-    );
+    // Mélanger les deux couleurs avec le gradient
+    vec3 color = mix(colors[0], colors[1], gradient);
     
     gl_FragColor = vec4(color, 1.0);
   }
@@ -74,25 +61,6 @@ const hexToRgb = (hex: string): number[] => {
   const b = parseInt(hex.slice(5, 7), 16) / 255;
   return [r, g, b];
 };
-
-/**
- * Calculate color difference using Delta E (CIE76)
- */
-const getColorDifference = (color1: number[], color2: number[]): number => {
-  const rDiff = color1[0] - color2[0];
-  const gDiff = color1[1] - color2[1];
-  const bDiff = color1[2] - color2[2];
-  return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
-};
-
-/**
- * Get fallback colors if extracted colors are too similar
- */
-const getFallbackColors = (): number[][] => [
-  [0.8, 0.2, 0.2], // Rouge vif
-  [0.2, 0.6, 0.8], // Bleu clair
-  [0.8, 0.2, 0.8], // Violet
-];
 
 /**
  * Initialize and compile a WebGL shader
@@ -163,27 +131,12 @@ export const initializeShader = (
   });
 
   const { scene, camera, material } = setupScene();
-  let rgbColors = colors.map(hexToRgb).flat();
+  const rgbColors = colors.map(hexToRgb).flat();
 
   // Vérifier si les couleurs sont assez différentes
   const colorArrays: number[][] = [];
   for (let i = 0; i < rgbColors.length; i += 3) {
     colorArrays.push(rgbColors.slice(i, i + 3));
-  }
-
-  // Vérifier la différence entre les couleurs
-  const minDifference = 0.1; // Seuil minimum de différence
-  const needsFallback = colorArrays.some((color1, i) =>
-    colorArrays.some(
-      (color2, j) =>
-        i !== j && getColorDifference(color1, color2) < minDifference,
-    ),
-  );
-
-  // Utiliser les couleurs de fallback si nécessaire
-  if (needsFallback) {
-    console.info('Using fallback colors due to low contrast');
-    rgbColors = getFallbackColors().flat();
   }
 
   const startTime = Date.now();
