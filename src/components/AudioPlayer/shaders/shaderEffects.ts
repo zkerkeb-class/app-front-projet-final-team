@@ -17,21 +17,44 @@ const fragmentShader = `
   uniform float audioIntensity;
   varying vec2 vUv;
   
+  float hash(vec2 p) {
+    float h = dot(p, vec2(127.1, 311.7));
+    return fract(sin(h) * 43758.5453123);
+  }
+  
+  // Perlin noise function
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    
+    f = f * f * (3.0 - 2.0 * f);
+    
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+  
   void main() {
     vec2 uv = vUv;
     
-    // Mouvement de base modulé par l'intensité audio
-    float movement = sin(uv.x * 2.0 + time) * 0.5 + 0.5;
-    movement *= sin(uv.y * 2.0 + time * 0.5) * 0.5 + 0.5;
+    // Add noise to the base movement
+    float noiseValue = noise(uv * 5.0 + time * 0.5) * 2.0 - 1.0;
     
-    // Ajouter une modulation basée sur l'intensité audio
-    movement += audioIntensity * 0.2 * sin(uv.x * 10.0 + time * 2.0);
+    // Base movement modulated by audio intensity and noise
+    float movement = sin(uv.x * 2.0 + time + noiseValue) * 0.5 + 0.5;
+    movement *= sin(uv.y * 2.0 + time * 0.5 + noiseValue) * 0.5 + 0.5;
     
-    // Mélange des couleurs avec influence de l'audio
+    // Add modulation based on audio intensity and noise
+    movement += audioIntensity * 0.2 * sin(uv.x * 10.0 + time * 2.0 + noiseValue * 3.0);
+    
+    // Mix colors with influence of audio and noise
     vec3 color = mix(
       mix(colors[0], colors[1], movement),
       colors[2],
-      sin(time * 0.2 + audioIntensity) * 0.5 + 0.5
+      sin(time * 0.2 + audioIntensity + noiseValue) * 0.5 + 0.5
     );
     
     gl_FragColor = vec4(color, 1.0);
@@ -68,7 +91,7 @@ const getColorDifference = (color1: number[], color2: number[]): number => {
 const getFallbackColors = (): number[][] => [
   [0.8, 0.2, 0.2], // Rouge vif
   [0.2, 0.6, 0.8], // Bleu clair
-  [0.8, 0.7, 0.2], // Jaune doré
+  [0.8, 0.2, 0.8], // Violet
 ];
 
 /**
