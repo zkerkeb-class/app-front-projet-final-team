@@ -17,25 +17,30 @@ export default function AudioVisualizer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<{ animate: () => void }>({ animate: () => {} });
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current || !isFullscreen) return;
 
-    let audioContext: AudioContext;
-    let analyser: AnalyserNode;
+    const initializeAudioAnalyser = async () => {
+      if (!audioContextRef.current) {
+        const audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
 
-    const initializeAudioAnalyser = () => {
-      audioContext = new AudioContext();
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
+        if (audioRef.current && !sourceRef.current) {
+          const source = audioContext.createMediaElementSource(
+            audioRef.current,
+          );
+          source.connect(analyser);
+          analyser.connect(audioContext.destination);
+          sourceRef.current = source;
+        }
 
-      if (audioRef.current) {
-        const source = audioContext.createMediaElementSource(audioRef.current);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
       }
-
-      analyserRef.current = analyser;
     };
 
     const setupVisualizer = async () => {
@@ -50,26 +55,21 @@ export default function AudioVisualizer({
       if (analyserRef.current) {
         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteFrequencyData(dataArray);
-
-        // Calculer l'intensité moyenne des fréquences
-        // const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-        // Utiliser cette valeur pour moduler l'animation
-        // TODO: Passer cette valeur aux shaders
       }
 
       animationRef.current.animate();
       requestAnimationFrame(animate);
     };
 
-    initializeAudioAnalyser();
-    setupVisualizer().then(() => {
-      animate();
+    initializeAudioAnalyser().then(() => {
+      setupVisualizer().then(() => {
+        animate();
+      });
     });
 
     return () => {
-      if (audioContext) {
-        audioContext.close();
+      if (audioContextRef.current && !isFullscreen) {
+        audioContextRef.current.suspend();
       }
     };
   }, [coverUrl, isFullscreen, audioRef]);

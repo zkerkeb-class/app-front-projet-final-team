@@ -12,22 +12,11 @@ import {
 } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import AudioVisualizer from './components/AudioVisualizer';
+import { useAudio } from '@/contexts/AudioContext';
 
-interface AudioPlayerProps {
-  src?: string;
-  title?: string;
-  artist?: string;
-  coverUrl?: string;
-}
-
-export default function AudioPlayer({
-  src = '',
-  title = 'Aucun titre',
-  artist = 'Aucun artiste',
-  coverUrl = '/default-cover.jpg',
-}: AudioPlayerProps) {
+export default function AudioPlayer() {
+  const { currentTrack, isPlaying, setIsPlaying } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -95,6 +84,8 @@ export default function AudioPlayer({
     console.log('Previous track');
   };
 
+  if (!currentTrack) return null;
+
   return (
     <div
       onClick={() => window.innerWidth < 768 && setIsFullscreen(!isFullscreen)}
@@ -104,18 +95,18 @@ export default function AudioPlayer({
         {/* Cover et infos */}
         <div className="flex items-center space-x-4 w-full md:w-auto">
           <Image
-            src={coverUrl}
-            alt={title}
+            src={currentTrack.coverUrl}
+            alt={currentTrack.title}
             className="rounded-lg object-cover w-16 h-16"
             width={64}
             height={64}
           />
           <div className="min-w-0">
             <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-              {title}
+              {currentTrack.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 truncate hidden md:block">
-              {artist}
+              {currentTrack.artist}
             </p>
           </div>
         </div>
@@ -252,14 +243,14 @@ export default function AudioPlayer({
 
       <audio
         ref={audioRef}
-        src={src}
+        src={currentTrack.src}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
       />
 
       <AudioVisualizer
-        coverUrl={coverUrl}
+        coverUrl={currentTrack.coverUrl}
         audioRef={audioRef}
         isFullscreen={isFullscreen}
       />
