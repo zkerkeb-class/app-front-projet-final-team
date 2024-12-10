@@ -11,6 +11,7 @@ import {
   ForwardIcon,
 } from '@heroicons/react/24/solid';
 import Image from 'next/image';
+import AudioVisualizer from './components/AudioVisualizer';
 
 interface AudioPlayerProps {
   src?: string;
@@ -255,6 +256,12 @@ export default function AudioPlayer({
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
+      />
+
+      <AudioVisualizer
+        coverUrl={coverUrl}
+        audioRef={audioRef}
+        isFullscreen={isFullscreen}
       />
     </div>
   );
