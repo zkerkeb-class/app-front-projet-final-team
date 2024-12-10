@@ -27,3 +27,13 @@ input[type="range"] {
   .play-pause-btn:active {
     @apply scale-95;
   }
+
+/* Styles pour les barres de progression */
+.group:hover .bg-purple-600 {
+    background-color: theme('colors.purple.500');
+  }
+  
+  /* Animation du curseur */
+  .group:active .h-3 {
+    transform: scale(1.2) translateX(-50%);
+  }
