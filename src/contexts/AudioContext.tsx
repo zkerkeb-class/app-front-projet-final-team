@@ -5,7 +5,7 @@ const defaultTrack = {
   src: '/the_line_top.m4a',
   title: 'The Line',
   artist: 'Twenty One Pilots',
-  coverUrl: '/arcane.jpg',
+  coverUrl: '/fromzero.jpeg',
 };
 
 interface AudioContextType {

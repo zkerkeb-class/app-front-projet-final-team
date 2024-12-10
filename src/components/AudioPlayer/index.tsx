@@ -186,7 +186,7 @@ export default function AudioPlayer() {
       <div
         className={`max-w-7xl mx-auto ${isFullscreen ? 'h-full flex flex-col justify-center items-center' : 'flex flex-row items-center justify-between'} md:space-y-0`}
       >
-        {/* Cover et infos */}
+        {/* Cover and infos */}
         <div
           className={`flex ${isFullscreen ? 'flex-col items-center mb-8' : 'items-center space-x-4'} w-full md:w-auto`}
         >
@@ -213,7 +213,7 @@ export default function AudioPlayer() {
 
         {isFullscreen ? (
           <div className="w-full max-w-xl space-y-6">
-            {/* Bouton pour réduire le lecteur */}
+            {/* Button to reduce the player */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -224,7 +224,7 @@ export default function AudioPlayer() {
               <ArrowsPointingOutIcon className="w-6 h-6 rotate-180" />
             </button>
 
-            {/* Progress bar en mode plein écran */}
+            {/* Progress bar in fullscreen mode */}
             <div className="flex items-center space-x-2 w-full">
               <span className="text-xs text-white">
                 {formatTime(currentTime)}
@@ -272,7 +272,7 @@ export default function AudioPlayer() {
               <span className="text-xs text-white">{formatTime(duration)}</span>
             </div>
 
-            {/* Contrôles en mode plein écran */}
+            {/* Controls in fullscreen mode */}
             <div className="flex justify-center items-center space-x-8">
               <button
                 onClick={() => setIsShuffle(!isShuffle)}
@@ -318,7 +318,7 @@ export default function AudioPlayer() {
               </button>
             </div>
 
-            {/* Volume en mode plein écran */}
+            {/* Volume in fullscreen mode */}
             <div className="flex justify-center items-center space-x-4">
               <button
                 onClick={toggleMute}
@@ -366,7 +366,7 @@ export default function AudioPlayer() {
           </div>
         ) : (
           <>
-            {/* Version mobile et desktop normale - code existant */}
+            {/* Mobile and normal desktop version */}
             <div className="flex md:hidden items-center space-x-3">
               <button
                 onClick={(e) => {

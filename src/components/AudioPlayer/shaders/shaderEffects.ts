@@ -62,36 +62,13 @@ const hexToRgb = (hex: string): number[] => {
   return [r, g, b];
 };
 
-/**
- * Initialize and compile a WebGL shader
- */
-// const createShader = (gl: WebGLRenderingContext, type: number, source: string) => {
-//   const shader = gl.createShader(type);
-//   if (!shader) {
-//     console.error('Failed to create shader');
-//     return null;
-//   }
-
-//   gl.shaderSource(shader, source);
-//   gl.compileShader(shader);
-
-//   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-//     console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
-//     gl.deleteShader(shader);
-//     return null;
-//   }
-//   return shader;
-// };
-
 // Add Three.js scene setup
 const setupScene = () => {
   const scene = new THREE.Scene();
 
-  // Utiliser une caméra orthographique pour le shader
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   camera.position.z = 1;
 
-  // Création du plan pour le shader
   const planeGeometry = new THREE.PlaneGeometry(2, 2);
   const material = new THREE.ShaderMaterial({
     vertexShader,
@@ -106,8 +83,8 @@ const setupScene = () => {
   const plane = new THREE.Mesh(planeGeometry, material);
   scene.add(plane);
 
-  /* Code du cube commenté
-  // Ajout du cube rouge de debug
+  /* 
+  // Debug red cube
   const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
   const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
   const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
@@ -133,7 +110,6 @@ export const initializeShader = (
   const { scene, camera, material } = setupScene();
   const rgbColors = colors.map(hexToRgb).flat();
 
-  // Vérifier si les couleurs sont assez différentes
   const colorArrays: number[][] = [];
   for (let i = 0; i < rgbColors.length; i += 3) {
     colorArrays.push(rgbColors.slice(i, i + 3));
@@ -155,7 +131,7 @@ export const initializeShader = (
   const animate = (audioIntensity = 0) => {
     const time = (Date.now() - startTime) / 1000;
 
-    /* Animation du cube commentée
+    /* Debug red cube
     const cube = scene.children.find(child => child instanceof THREE.Mesh && child.geometry instanceof THREE.BoxGeometry);
     if (cube) {
       cube.rotation.x += 0.01;
