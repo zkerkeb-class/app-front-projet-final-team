@@ -22,5 +22,10 @@
         "albums": "Albums",
         "artists": "Artists",
         "playlists": "Playlists"
+    },
+    "search": {
+        "placeholder": "Search for titles, artists, albums...",
+        "noResults": "No results found",
+        "error": "An error occurred"
     }
 }

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { useTranslation } from 'next-i18next';
 import LanguageSwitcher from './i18n';
 import { useTheme } from '../hooks/useTheme';
@@ -6,23 +6,41 @@ import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { AudioProvider } from '@/contexts/AudioContext';
 import AudioPlayer from './AudioPlayer';
 import LibrarySidebar from './LibrarySidebar';
+import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
+import gsap from 'gsap';
+import SearchBar from './SearchBar';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
+function LayoutContent({ children }: LayoutProps) {
   const { t } = useTranslation('common');
   const { isDarkMode, toggleTheme } = useTheme();
+  const { isExpanded } = useSidebar();
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      gsap.to(mainRef.current, {
+        marginLeft: isExpanded ? '256px' : '56px',
+        duration: 0.3,
+        ease: 'power2.inOut',
+      });
+    }
+  }, [isExpanded]);
 
   return (
     <AudioProvider>
       <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
         <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 flex flex-col">
-          <header className="p-4 flex justify-between items-center ">
+          <header className="p-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {t('welcome')}
             </h1>
+            <div className="flex-1 max-w-2xl mx-8">
+              <SearchBar />
+            </div>
             <div className="flex items-center gap-4">
               <button
                 onClick={toggleTheme}
@@ -39,15 +57,15 @@ export default function Layout({ children }: LayoutProps) {
           </header>
 
           <div className="flex flex-1 overflow-hidden">
-            <div className="py-4 px-2 relative">
-              <LibrarySidebar />
-            </div>
-            <main className={`flex-1 overflow-y-auto p-4`}>{children}</main>
+            <LibrarySidebar />
+            <main ref={mainRef} className="flex-1 overflow-y-auto p-4">
+              {children}
+            </main>
           </div>
 
           <AudioPlayer />
 
-          <footer className="bg-gray-50 dark:bg-gray-800 py-8 mt-auto">
+          <footer className="bg-gray-50 dark:bg-gray-900 py-8 mt-auto border-t border-gray-200 dark:border-gray-700">
             <div className="container mx-auto px-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
@@ -129,5 +147,13 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </div>
     </AudioProvider>
+  );
+}
+
+export default function Layout(props: LayoutProps) {
+  return (
+    <SidebarProvider>
+      <LayoutContent {...props} />
+    </SidebarProvider>
   );
 }

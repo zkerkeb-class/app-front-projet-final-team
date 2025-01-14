@@ -25,5 +25,10 @@
     "terms": "Conditions d'utilisation",
     "social": "Réseaux sociaux",
     "rights": "Tous droits réservés."
+  },
+  "search": {
+    "placeholder": "Rechercher des titres, artistes, albums...",
+    "noResults": "Aucun résultat trouvé",
+    "error": "Une erreur est survenue"
   }
 }
