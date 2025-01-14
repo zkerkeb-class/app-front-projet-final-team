@@ -1,5 +1,7 @@
 import { useTranslation } from 'next-i18next';
+import { useEffect } from 'react';
 import HorizontalList from '@/components/common/HorizontalList';
+import ArtistService from '../../../services/api/artist.service';
 
 /**
  * Interface for artist data
@@ -14,6 +16,17 @@ interface Artist {
 
 export default function PopularArtists() {
   const { t } = useTranslation('common');
+
+  useEffect(() => {
+    const fetchPopularArtists = async () => {
+      const apiArtists = await ArtistService.getPopularArtists(40);
+      console.log('Artistes populaires récupérés:', apiArtists);
+    };
+
+    fetchPopularArtists();
+  }, []);
+
+  // Garder les données mockées pour l'affichage pour l'instant
   const mockArtists: Artist[] = Array.from({ length: 40 }, (_, i) => ({
     id: `artist-${i}`,
     name: `Artiste ${i + 1}`,

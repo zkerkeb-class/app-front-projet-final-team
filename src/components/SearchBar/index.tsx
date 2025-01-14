@@ -1,16 +1,58 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import {
+  MagnifyingGlassIcon,
+  MusicalNoteIcon,
+  UserIcon,
+  ListBulletIcon,
+} from '@heroicons/react/24/outline';
 import debounce from 'lodash/debounce';
 import { SearchResult } from '@/types/search';
 import { gql, useLazyQuery } from '@apollo/client';
 import { formatSearchResults } from '@/utils/searchUtils';
+import { useRouter } from 'next/router';
 
 const SEARCH_QUERY = gql`
   query Search($input: SearchInput!) {
-    search(input: $input)
+    search(input: $input) {
+      tracks {
+        name
+      }
+      artists {
+        name
+      }
+      albums {
+        name
+      }
+      playlists {
+        name
+      }
+    }
   }
 `;
+
+const SearchSkeleton = () => (
+  <div className="py-2">
+    {Array.from({ length: 3 }).map((_, categoryIndex) => (
+      <div key={categoryIndex}>
+        <div className="px-3 py-1">
+          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+        {Array.from({ length: 2 }).map((_, itemIndex) => (
+          <div key={itemIndex} className="p-3 flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <div className="h-5 w-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-3 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+);
 
 export default function SearchBar() {
   const { t } = useTranslation('common');
@@ -18,6 +60,7 @@ export default function SearchBar() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const [search, { loading: isLoading, error }] = useLazyQuery(SEARCH_QUERY, {
     onCompleted: (data) => {
@@ -41,8 +84,7 @@ export default function SearchBar() {
         variables: {
           input: {
             query: searchQuery,
-            entityType: 'TITLE',
-            limit: 10,
+            limit: 3,
           },
         },
       });
@@ -61,6 +103,55 @@ export default function SearchBar() {
     debouncedSearch(value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      setShowResults(false);
+    }
+  };
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'track':
+        return <MusicalNoteIcon className="w-5 h-5 text-gray-500" />;
+      case 'artist':
+        return <UserIcon className="w-5 h-5 text-gray-500" />;
+      case 'album':
+        return <UserIcon className="w-5 h-5 text-gray-500" />;
+      case 'playlist':
+        return <ListBulletIcon className="w-5 h-5 text-gray-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const groupedResults = results.reduce(
+    (acc, result) => {
+      if (!acc[result.type]) {
+        acc[result.type] = [];
+      }
+      acc[result.type].push(result);
+      return acc;
+    },
+    {} as Record<string, SearchResult[]>,
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div ref={searchRef} className="relative w-full max-w-xl">
       <div className="relative">
@@ -69,20 +160,27 @@ export default function SearchBar() {
           type="text"
           value={query}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onFocus={() => setShowResults(true)}
           placeholder={t('search.placeholder')}
           className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 
                    text-gray-900 dark:text-white placeholder-gray-500 
                    focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
-        {isLoading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent" />
+        {query.trim() !== '' && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center">
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent" />
+            ) : (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {t('search.pressEnter')}
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      {showResults && (results.length > 0 || isLoading) && (
+      {showResults && (query.trim() !== '' || isLoading) && (
         <div
           className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
                       max-h-96 overflow-y-auto z-50"
@@ -90,31 +188,36 @@ export default function SearchBar() {
           {error && (
             <div className="p-3 text-red-500 text-sm">{t('search.error')}</div>
           )}
-          {results.map((result) => (
-            <div
-              key={result.id}
-              className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer 
-                       flex items-center space-x-3"
-            >
-              {result.imageUrl && (
-                <img
-                  src={result.imageUrl}
-                  alt={result.title}
-                  className="w-10 h-10 rounded object-cover"
-                />
-              )}
-              <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {result.title}
+          {isLoading ? (
+            <SearchSkeleton />
+          ) : results.length > 0 ? (
+            Object.entries(groupedResults).map(([type, items]) => (
+              <div key={type} className="py-2">
+                <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
+                  {t(`search.${type}s`)}
                 </div>
-                {result.subtitle && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {result.subtitle}
+                {items.map((result) => (
+                  <div
+                    key={result.id}
+                    className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer 
+                             flex items-center space-x-3"
+                  >
+                    <div className="flex-shrink-0">{getIcon(result.type)}</div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {result.title}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {result.subtitle}
+                      </div>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <SearchSkeleton />
+          )}
         </div>
       )}
     </div>

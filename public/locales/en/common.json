@@ -26,6 +26,13 @@
     "search": {
         "placeholder": "Search for titles, artists, albums...",
         "noResults": "No results found",
-        "error": "An error occurred"
+        "error": "An error occurred",
+        "backToResults": "Back to results",
+        "resultsFor": "Results for",
+        "loadMore": "No more ",
+        "noMoreResults": "No more results",
+        "tracks": "Tracks",
+        "artists": "Artists",
+        "albums": "Albums"
     }
 }

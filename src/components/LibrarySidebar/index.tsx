@@ -41,8 +41,8 @@ export default function LibrarySidebar() {
   return (
     <div
       ref={sidebarRef}
-      className="fixed left-0 top-24 h-[calc(100vh-12rem)] text-gray-900 dark:text-white shadow-lg dark:bg-gray-800 transition-colors duration-300
-      rounded-r-2xl overflow-hidden z-10"
+      className="fixed left-4 top-18 h-[calc(100vh-12rem)] text-gray-900 dark:text-white shadow-lg dark:bg-gray-800 transition-colors duration-300
+      rounded-2xl overflow-hidden z-1"
     >
       <nav className="p-2 space-y-2">
         <button
