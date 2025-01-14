@@ -1,6 +1,8 @@
 {
   "welcome": "Bienvenue sur ZakHarmony!",
   "language": "Langue",
+  "listeners": "listeners",
+  "back": "Retour",
   "menu": {
     "home": "Accueil",
     "profile": "Profil",
@@ -37,5 +39,30 @@
     "tracks": "Titres",
     "artists": "Artistes",
     "albums": "Albums"
+  },
+  "auth": {
+    "loginTitle": "Connectez-vous pour continuer",
+    "password": "Mot de passe",
+    "login": "Se connecter",
+    "loggingIn": "Connexion en cours...",
+    "register": "S'inscrire",
+    "noAccount": "Pas encore de compte ?",
+    "registerTitle": "Créer un compte",
+    "hasAccount": "Déjà un compte ?",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "username": "Nom d'utilisateur",
+    "userType": "Type de compte",
+    "userTypeStandard": "Auditeur",
+    "userTypeArtist": "Artiste",
+    "registering": "Création du compte...",
+    "profilePicture": "Photo de profil",
+    "errors": {
+      "invalidCredentials": "Email ou mot de passe incorrect",
+      "registrationFailed": "Erreur lors de l'inscription"
+    }
+  },
+  "errors": {
+    "serverError": "Une erreur est survenue sur le serveur"
   }
 }

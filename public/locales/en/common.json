@@ -1,6 +1,8 @@
 {
     "welcome": "Welcome to ZakHarmony!",
     "language": "Language",
+    "back": "Back",
+    "listeners": "listeners",
     "menu": {
       "home": "Home",
       "profile": "Profile",
@@ -29,10 +31,38 @@
         "error": "An error occurred",
         "backToResults": "Back to results",
         "resultsFor": "Results for",
-        "loadMore": "No more ",
+        "loadMore": "Load more",
         "noMoreResults": "No more results",
         "tracks": "Tracks",
         "artists": "Artists",
         "albums": "Albums"
+    },
+    "auth": {
+        "loginTitle": "Sign in to continue",
+        "password": "Password",
+        "login": "Sign in",
+        "loggingIn": "Signing in...",
+        "register": "Sign up",
+        "noAccount": "Don't have an account?",
+        "registerTitle": "Create an account",
+        "hasAccount": "Already have an account?",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "username": "Username",
+        "userType": "Account type",
+        "userTypeStandard": "Listener",
+        "userTypeArtist": "Artist",
+        "registering": "Creating account...",
+        "profilePicture": "Profile picture",
+        "logout": "Sign out",
+        "profile": "My profile",
+        "settings": "Settings",
+        "errors": {
+          "invalidCredentials": "Invalid email or password",
+          "registrationFailed": "Registration failed"
+        }
+    },
+    "errors": {
+        "serverError": "An error occurred on the server"
     }
 }

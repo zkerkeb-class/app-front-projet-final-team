@@ -1,42 +1,64 @@
 import { useTranslation } from 'next-i18next';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import HorizontalList from '@/components/common/HorizontalList';
-
-/**
- * Interface for track data
- */
-interface Track {
-  id: string;
-  title: string;
-  artist: string;
-  coverUrl: string;
-  duration: string;
-}
+import AlbumService from '../../../services/api/album.service';
+import { Album } from '../LatestAlbums';
 
 export default function LatestReleases() {
   const { t } = useTranslation('common');
-  const mockTracks: Track[] = Array.from({ length: 40 }, (_, i) => ({
-    id: `track-${i}`,
-    title: `Titre ${i + 1}`,
-    artist: `Artiste ${i + 1}`,
-    coverUrl: `https://picsum.photos/200/200?random=${i}`,
-    duration: '3:30',
-  }));
+  const [releases, setReleases] = useState<Album[]>([]);
+  const [error, setError] = useState<Error | null>(null);
 
-  const renderTrack = (track: Track, style: React.CSSProperties) => (
+  useEffect(() => {
+    const fetchLatestReleases = async () => {
+      try {
+        const apiReleases = await AlbumService.getLatestAlbums(40);
+        setReleases(apiReleases);
+        setError(null);
+      } catch (error) {
+        setError(error as Error);
+        console.error('Erreur lors de la récupération des sorties:', error);
+      }
+    };
+
+    fetchLatestReleases();
+  }, []);
+
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-md bg-purple-600 px-4 py-2 text-sm text-white transition-colors hover:bg-purple-500"
+        >
+          {t('errors.tryAgain')}
+        </button>
+      </div>
+    );
+  }
+
+  const renderRelease = (release: Album, style: React.CSSProperties) => (
     <div style={style} className="p-2">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105">
-        <img
-          src={track.coverUrl}
-          alt={track.title}
-          className="w-full h-32 object-cover"
-        />
+        <div className="relative w-full h-32">
+          <Image
+            src={release.cover_art_url.urls.medium.webp}
+            alt={release.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        </div>
         <div className="p-3">
           <h3 className="font-semibold text-gray-800 dark:text-white truncate">
-            {track.title}
+            {release.title}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {track.artist}
-          </p>
+          <div className="mt-2 flex justify-between items-center">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {new Date(release.release_date).toLocaleDateString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -44,9 +66,9 @@ export default function LatestReleases() {
 
   return (
     <HorizontalList
-      items={mockTracks}
+      items={releases}
       title={t('home.latestReleases')}
-      renderItem={renderTrack}
+      renderItem={renderRelease}
       height={220}
     />
   );

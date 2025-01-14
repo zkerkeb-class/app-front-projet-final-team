@@ -1,6 +1,9 @@
-const path = require('path');
+import path from 'path';
 
-module.exports = {
+export default {
+  images: {
+    domains: ['d3cqeg6fl6kah.cloudfront.net'],
+  },
   i18n: {
     locales: ['en', 'fr', 'ar'], // Langues supportées
     defaultLocale: 'fr', // Langue par défaut

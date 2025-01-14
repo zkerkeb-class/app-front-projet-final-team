@@ -1,30 +1,38 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
-import {
-  MagnifyingGlassIcon,
-  MusicalNoteIcon,
-  UserIcon,
-  ListBulletIcon,
-} from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import debounce from 'lodash/debounce';
 import { SearchResult } from '@/types/search';
 import { gql, useLazyQuery } from '@apollo/client';
 import { formatSearchResults } from '@/utils/searchUtils';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 const SEARCH_QUERY = gql`
   query Search($input: SearchInput!) {
     search(input: $input) {
       tracks {
+        artist_id
+        artist_name
+        album_id
+        album_name
+        id
+        image_url
         name
       }
       artists {
+        id
+        image_url
         name
       }
       albums {
+        id
+        image_url
         name
       }
       playlists {
+        id
+        image_url
         name
       }
     }
@@ -110,21 +118,6 @@ export default function SearchBar() {
     }
   };
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'track':
-        return <MusicalNoteIcon className="w-5 h-5 text-gray-500" />;
-      case 'artist':
-        return <UserIcon className="w-5 h-5 text-gray-500" />;
-      case 'album':
-        return <UserIcon className="w-5 h-5 text-gray-500" />;
-      case 'playlist':
-        return <ListBulletIcon className="w-5 h-5 text-gray-500" />;
-      default:
-        return null;
-    }
-  };
-
   const groupedResults = results.reduce(
     (acc, result) => {
       if (!acc[result.type]) {
@@ -134,6 +127,51 @@ export default function SearchBar() {
       return acc;
     },
     {} as Record<string, SearchResult[]>,
+  );
+
+  const renderSearchResult = (result: SearchResult) => (
+    <div
+      key={result.id}
+      onClick={() => {
+        if (result.type === 'album') {
+          router.push(`/album/${result.id}`);
+        } else if (result.type === 'artist') {
+          router.push(`/artist/${result.id}`);
+        } else if (result.type === 'track') {
+          router.push(`/album/${result.album_id}?trackId=${result.id}`);
+        }
+        setShowResults(false);
+      }}
+      className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3"
+    >
+      <div className="flex-shrink-0">
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+          <Image
+            src={result.image_url.urls.medium.webp}
+            alt={result.title}
+            fill
+            className="object-cover"
+            sizes="40px"
+          />
+        </div>
+      </div>
+      <div>
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
+          {result.title}
+        </div>
+        {result.type === 'track' ? (
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+            <span>
+              {result.artist_name} • {result.album_name}
+            </span>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {result.subtitle}
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   useEffect(() => {
@@ -196,23 +234,7 @@ export default function SearchBar() {
                 <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
                   {t(`search.${type}s`)}
                 </div>
-                {items.map((result) => (
-                  <div
-                    key={result.id}
-                    className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer 
-                             flex items-center space-x-3"
-                  >
-                    <div className="flex-shrink-0">{getIcon(result.type)}</div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {result.title}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {result.subtitle}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {items.map(renderSearchResult)}
               </div>
             ))
           ) : (

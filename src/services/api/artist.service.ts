@@ -1,13 +1,8 @@
 /**
  * Interface for artist data from API
  */
-interface ApiArtist {
-  id: string;
-  name: string;
-  profile_picture_url: string;
-  total_listeners: number;
-  genres: string[];
-}
+
+import { Artist } from '@/components/home/PopularArtists';
 
 /**
  * Service for handling artist-related API calls
@@ -16,7 +11,7 @@ const ArtistService = {
   /**
    * Get popular artists
    */
-  async getPopularArtists(limit: number = 40): Promise<ApiArtist[]> {
+  async getPopularArtists(limit: number = 40): Promise<Artist[]> {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/artists/top?limit=${limit}`,
@@ -38,7 +33,7 @@ const ArtistService = {
   /**
    * Search artists by name
    */
-  async searchArtists(query: string): Promise<ApiArtist[]> {
+  async searchArtists(query: string): Promise<Artist[]> {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/artists/search?q=${encodeURIComponent(query)}`,
@@ -56,7 +51,7 @@ const ArtistService = {
   /**
    * Get artists by genre
    */
-  async getArtistsByGenre(genre: string): Promise<ApiArtist[]> {
+  async getArtistsByGenre(genre: string): Promise<Artist[]> {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/artists/genre/${genre}`,

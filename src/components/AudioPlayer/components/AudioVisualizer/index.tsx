@@ -5,7 +5,7 @@ import { initializeShader } from '../../shaders/shaderEffects';
 
 interface AudioVisualizerProps {
   coverUrl: string;
-  audioRef: React.RefObject<HTMLAudioElement>;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
   isFullscreen: boolean;
 }
 

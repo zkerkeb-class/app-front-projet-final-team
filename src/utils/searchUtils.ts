@@ -14,50 +14,68 @@ import { SearchResult } from '@/types/search';
 // }
 
 export function formatSearchResults(results: {
-  tracks: { name: string }[];
-  artists: { name: string }[];
-  albums: { name: string }[];
-  playlists: { name: string }[];
+  tracks: {
+    id: string;
+    name: string;
+    image_url: SearchResult['image_url'];
+    album_id?: string;
+    album_name?: string;
+    artist_name?: string;
+    artist_id?: string;
+  }[];
+  artists: { id: string; name: string; image_url: SearchResult['image_url'] }[];
+  albums: { id: string; name: string; image_url: SearchResult['image_url'] }[];
+  playlists: {
+    id: string;
+    name: string;
+    image_url: SearchResult['image_url'];
+  }[];
 }): SearchResult[] {
   const formattedResults: SearchResult[] = [];
 
-  // Formater les pistes
-  results.tracks?.forEach((track, index) => {
+  results.tracks?.forEach((track) => {
     formattedResults.push({
-      id: `track-${index}`,
+      id: track.id,
       title: track.name,
       type: 'track',
-      subtitle: 'Titre',
+      subtitle: `${track.album_name} • ${track.artist_name}`,
+      image_url: track.image_url,
+      album_id: track.album_id,
+      artist_id: track.artist_id,
+      artist_name: track.artist_name,
     });
   });
 
   // Formater les artistes
-  results.artists?.forEach((artist, index) => {
+  results.artists?.forEach((artist) => {
     formattedResults.push({
-      id: `artist-${index}`,
+      id: artist.id,
       title: artist.name,
       type: 'artist',
       subtitle: 'Artiste',
+      image_url: artist.image_url,
     });
   });
 
   // Formater les albums
-  results.albums?.forEach((album, index) => {
+  results.albums?.forEach((album) => {
     formattedResults.push({
-      id: `album-${index}`,
+      id: album.id,
       title: album.name,
       type: 'album',
       subtitle: 'Album',
+      image_url: album.image_url,
     });
   });
 
   // Formater les playlists
-  results.playlists?.forEach((playlist, index) => {
+  results.playlists?.forEach((playlist) => {
     formattedResults.push({
-      id: `playlist-${index}`,
+      id: playlist.id,
       title: playlist.name,
       type: 'playlist',
       subtitle: 'Playlist',
+      image_url: playlist.image_url,
     });
   });
 

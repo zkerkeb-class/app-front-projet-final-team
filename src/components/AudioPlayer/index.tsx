@@ -44,23 +44,48 @@ export default function AudioPlayer() {
   const volumeBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setCurrentTime(0);
-    setDuration(0);
-
     if (audioRef.current) {
-      audioRef.current.load();
+      // Arrêter la lecture actuelle
+      audioRef.current.pause();
+
+      // Réinitialiser l'état
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      setDuration(0);
+
+      // Mettre à jour la source
+      audioRef.current.src = currentTrack.src;
+
+      // Charger le nouveau média
+      const loadPromise = audioRef.current.load();
+
+      // Gérer la lecture après le chargement
       if (isPlaying) {
-        audioRef.current.play();
+        Promise.resolve(loadPromise).then(() => {
+          const playPromise = audioRef.current?.play();
+          if (playPromise) {
+            playPromise.catch((error) => {
+              console.error('Erreur lors de la lecture :', error);
+              setIsPlaying(false);
+            });
+          }
+        });
       }
     }
-  }, [currentTrack.src]);
+  }, [currentTrack.src, isPlaying]);
 
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.error('Erreur lors de la lecture :', error);
+            setIsPlaying(false);
+          });
+        }
       }
       setIsPlaying(!isPlaying);
     }
@@ -110,7 +135,7 @@ export default function AudioPlayer() {
   const handleBarClick = useCallback(
     (
       e: React.MouseEvent<HTMLDivElement>,
-      barRef: React.RefObject<HTMLDivElement>,
+      barRef: React.MutableRefObject<HTMLDivElement | null>,
       maxValue: number,
       callback: (value: number) => void,
     ) => {
@@ -136,7 +161,7 @@ export default function AudioPlayer() {
   const handleBarMouseDown = useCallback(
     (
       e: React.MouseEvent<HTMLDivElement>,
-      barRef: React.RefObject<HTMLDivElement>,
+      barRef: React.MutableRefObject<HTMLDivElement | null>,
       maxValue: number,
       callback: (value: number) => void,
       isProgress = false,

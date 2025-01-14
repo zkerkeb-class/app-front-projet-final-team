@@ -4,13 +4,16 @@ import Layout from '../components/Layout';
 import type { AppProps } from 'next/app';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/lib/apollo';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ApolloProvider client={client}>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
+      <AuthProvider>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </AuthProvider>
     </ApolloProvider>
   );
 }

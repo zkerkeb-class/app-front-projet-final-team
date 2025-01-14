@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
-import LatestReleases from '@/components/home/LatestReleases';
+// import LatestReleases from '@/components/home/LatestReleases';
 import PopularArtists from '@/components/home/PopularArtists';
 import LatestAlbums from '@/components/home/LatestAlbums';
 
@@ -29,7 +29,7 @@ export default function Home() {
 
       <main className="container mx-auto px-4">
         <section className="space-y-12">
-          <LatestReleases />
+          {/* <LatestReleases /> */}
           <PopularArtists />
           <LatestAlbums />
         </section>
