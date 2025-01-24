@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import HorizontalList from '@/components/common/HorizontalList';
 import AlbumService from '../../../services/api/album.service';
-import { Album } from '../LatestAlbums';
+import { Album as BaseAlbum } from '../LatestAlbums';
+
+type Album = Omit<BaseAlbum, 'id'> & { id: string | number };
 
 export default function LatestReleases() {
   const { t } = useTranslation('common');
@@ -13,8 +15,8 @@ export default function LatestReleases() {
   useEffect(() => {
     const fetchLatestReleases = async () => {
       try {
-        const apiReleases = await AlbumService.getLatestAlbums(40);
-        setReleases(apiReleases);
+        const response = await AlbumService.getLatestAlbums(40);
+        setReleases(response.data);
         setError(null);
       } catch (error) {
         setError(error as Error);
@@ -43,7 +45,7 @@ export default function LatestReleases() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105">
         <div className="relative w-full h-32">
           <Image
-            src={release.cover_art_url.urls.medium.webp}
+            src={release.image_url.urls.medium.webp}
             alt={release.title}
             fill
             className="object-cover"
@@ -66,7 +68,10 @@ export default function LatestReleases() {
 
   return (
     <HorizontalList
-      items={releases}
+      items={releases.map((release) => ({
+        ...release,
+        id: String(release.id),
+      }))}
       title={t('home.latestReleases')}
       renderItem={renderRelease}
       height={220}

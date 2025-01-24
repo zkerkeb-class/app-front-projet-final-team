@@ -11,7 +11,7 @@ export interface Album {
   genre: string;
   primary_artist_id: number;
   total_tracks: number;
-  cover_art_url: {
+  image_url: {
     urls: {
       medium: {
         webp: string;
@@ -93,7 +93,7 @@ export default function LatestAlbums() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
               <div className="relative aspect-square">
                 <Image
-                  src={album.cover_art_url.urls.medium.webp}
+                  src={album.image_url.urls.medium.webp}
                   alt={album.title}
                   fill
                   className="object-cover"

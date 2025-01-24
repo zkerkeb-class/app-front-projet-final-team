@@ -1,13 +1,17 @@
-import path from 'path';
+const path = require('path');
 
-export default {
+module.exports = {
   images: {
     domains: ['d3cqeg6fl6kah.cloudfront.net'],
   },
   i18n: {
-    locales: ['en', 'fr', 'ar'], // Langues supportées
-    defaultLocale: 'fr', // Langue par défaut
-    localeDetection: true, // Détection automatique
+    defaultLocale: 'fr',
+    locales: ['en', 'fr', 'ar'],
+    localeDetection: true,
   },
   localePath: path.resolve('./public/locales'),
+  rules: {
+    '@typescript-eslint/no-var-requires': 'off',
+  },
+  reloadOnPrerender: process.env.NODE_ENV === 'development',
 };

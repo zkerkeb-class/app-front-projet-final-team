@@ -60,7 +60,7 @@ export interface AlbumDetails {
   release_date: string;
   genre: string;
   total_tracks: number;
-  cover_art_url: {
+  image_url: {
     urls: {
       medium: {
         webp: string;
@@ -144,7 +144,7 @@ export default function AlbumDetail() {
         title: track.title,
         artist: primaryArtist?.name || '',
         coverUrl:
-          track.cover?.urls.medium.webp || album.cover_art_url.urls.medium.webp,
+          track.cover?.urls.medium.webp || album.image_url.urls.medium.webp,
         albumId: album.id.toString(),
       });
 
@@ -169,7 +169,7 @@ export default function AlbumDetail() {
         <div className="w-full md:w-1/3">
           <div className="relative aspect-square rounded-lg overflow-hidden shadow-lg">
             <Image
-              src={album.cover_art_url.urls.medium.webp}
+              src={album.image_url.urls.medium.webp}
               alt={album.title}
               fill
               className="object-cover"
