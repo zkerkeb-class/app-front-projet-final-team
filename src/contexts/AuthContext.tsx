@@ -14,8 +14,9 @@ interface User {
   username: string;
   first_name?: string;
   last_name?: string;
-  profile_picture_url?: string;
+  image_url?: any;
   user_type: 'standard' | 'artist';
+  created_at: string;
 }
 
 interface AuthContextType {
