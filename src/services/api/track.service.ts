@@ -260,7 +260,7 @@ class TrackService {
   ): Promise<TrackResponse> {
     try {
       const response = await fetch(
-        `${API_URL}/tracks/search?q=${query}&limit=${limit}`,
+        `${API_URL}/tracks/search?q=${encodeURIComponent(query)}&limit=${limit}`,
         {
           headers: this.getHeaders(),
         },

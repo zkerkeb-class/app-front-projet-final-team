@@ -71,7 +71,7 @@ export default function LibrarySidebar() {
             <MusicalNoteIcon className="h-5 w-5" />
           </span>
           <span ref={setTextRef(1)} className="whitespace-nowrap">
-            {t('library.playlists')}
+            {t('playlists.title')}
           </span>
         </Link>
         <Link
@@ -82,7 +82,7 @@ export default function LibrarySidebar() {
             <UserIcon className="h-5 w-5" />
           </span>
           <span ref={setTextRef(2)} className="whitespace-nowrap">
-            {t('library.artist')}
+            {t('search.artist')}
           </span>
         </Link>
 

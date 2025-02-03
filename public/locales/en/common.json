@@ -11,7 +11,12 @@
     "actions": {
         "save": "Save",
         "cancel": "Cancel",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "edit": "Edit",
+        "delete": "Delete",
+        "create": "Create",
+        "add": "Add",
+        "close": "Close"
     },
     "home": {
         "latestReleases": "Latest Releases",
@@ -25,17 +30,61 @@
         "artists": "Artists",
         "playlists": "Playlists"
     },
+    "playlists": {
+        "title": "My Playlists",
+        "create": "Create Playlist",
+        "edit": "Edit Playlist",
+        "delete": "Delete Playlist",
+        "mostPlayed": "Most Played",
+        "recentlyPlayed": "Recently Played",
+        "mostPlayedDescription": "Top 50 most played tracks",
+        "recentlyPlayedDescription": "Recently played tracks",
+        "empty": "This playlist is empty",
+        "noPlaylists": "You haven't created any playlists yet",
+        "tracks": {
+          "zero": "0 tracks",
+          "one": "1 track",
+          "other": "{{count}} tracks"
+        },
+        "addTracks": "Add Tracks",
+        "noTracksToAdd": "No tracks available to add",
+        "playAll": "Play All",
+        "successCreate": "Playlist created successfully",
+        "successUpdate": "Playlist updated successfully",
+        "successDelete": "Playlist deleted successfully",
+        "successAddTracks": "Tracks added successfully",
+        "successRemoveTrack": "Track removed successfully",
+        "errors": {
+          "loadFailed": "Unable to load playlists",
+          "createFailed": "Unable to create playlist",
+          "updateFailed": "Unable to update playlist",
+          "deleteFailed": "Unable to delete playlist",
+          "addTracksFailed": "Unable to add tracks",
+          "removeTrackFailed": "Unable to remove track",
+          "loadTracksFailed": "Unable to load tracks"
+        }
+    },
+    "footer": {
+        "description": "Your favorite music streaming platform",
+        "links": "Useful Links",
+        "about": "About",
+        "contact": "Contact",
+        "terms": "Terms of Use",
+        "social": "Social Media",
+        "rights": "All rights reserved."
+    },
     "search": {
-        "placeholder": "Search for titles, artists, albums...",
+        "placeholder": "Search for tracks, artists, albums...",
         "noResults": "No results found",
-        "error": "An error occurred",
+        "error": "An error occurred while searching",
         "backToResults": "Back to results",
         "resultsFor": "Results for",
         "loadMore": "Load more",
-        "noMoreResults": "No more results",
+        "noMoreResults": "No more results available",
         "tracks": "Tracks",
         "artists": "Artists",
-        "albums": "Albums"
+        "albums": "Albums",
+        "playlists": "Playlists"
     },
     "auth": {
         "loginTitle": "Sign in to continue",
@@ -46,14 +95,14 @@
         "noAccount": "Don't have an account?",
         "registerTitle": "Create an account",
         "hasAccount": "Already have an account?",
-        "firstName": "First name",
-        "lastName": "Last name",
+        "firstName": "First Name",
+        "lastName": "Last Name",
         "username": "Username",
-        "userType": "Account type",
+        "userType": "Account Type",
         "userTypeStandard": "Listener",
         "userTypeArtist": "Artist",
         "registering": "Creating account...",
-        "profilePicture": "Profile picture",
+        "profilePicture": "Profile Picture",
         "logout": "Sign out",
         "profile": "My profile",
         "settings": "Settings",
@@ -63,6 +112,7 @@
         }
     },
     "errors": {
-        "serverError": "An error occurred on the server"
+        "serverError": "A server error occurred",
+        "unauthorized": "Please sign in to continue"
     }
 }

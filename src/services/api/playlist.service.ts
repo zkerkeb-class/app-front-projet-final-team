@@ -82,7 +82,7 @@ class PlaylistService {
    * Get playlist details
    */
   static async getPlaylistDetails(id: number): Promise<Playlist> {
-    const response = await fetch(`${API_URL}/playlists/${id}`, {
+    const response = await fetch(`${API_URL}/playlists/id/${id}`, {
       headers: this.getHeaders(),
     });
     if (!response.ok) {
@@ -118,16 +118,18 @@ class PlaylistService {
    */
   static async removeTracksFromPlaylist(
     playlistId: number,
-    trackIds: number[],
+    trackId: number,
   ): Promise<void> {
-    const response = await fetch(`${API_URL}/playlists/${playlistId}/tracks`, {
-      method: 'DELETE',
-      headers: {
-        ...this.getHeaders(),
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `${API_URL}/playlists/${playlistId}/tracks/${trackId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          ...this.getHeaders(),
+          'Content-Type': 'application/json',
+        },
       },
-      body: JSON.stringify({ trackIds }),
-    });
+    );
     if (!response.ok) {
       throw new Error(
         'Erreur lors de la suppression des pistes de la playlist',

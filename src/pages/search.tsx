@@ -2,39 +2,38 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { PlayIcon } from '@heroicons/react/24/solid';
 import { gql, useQuery } from '@apollo/client';
 import HorizontalList from '@/components/common/HorizontalList';
 import Image from 'next/image';
+import { useAudio } from '@/contexts/AudioContext';
 
 const SEARCH_RESULTS_QUERY = gql`
   query SearchResults($input: SearchInput!) {
     search(input: $input) {
       tracks {
-        id
-        name
-        album_id
-        album_name
         artist_id
         artist_name
-        duration
+        album_id
+        album_name
+        id
         image_url
+        name
       }
       artists {
         id
-        name
-        genre
-        popularityScore
         image_url
+        name
       }
       albums {
         id
-        name
-        releaseDate
-        genre
-        artist_id
-        artist_name
-        totalTracks
         image_url
+        name
+      }
+      playlists {
+        id
+        image_url
+        name
       }
     }
   }
@@ -44,6 +43,7 @@ export default function SearchResults() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const { q: searchQuery } = router.query;
+  const { playTrack } = useAudio();
 
   const { data, loading: queryLoading } = useQuery(SEARCH_RESULTS_QUERY, {
     variables: {
@@ -72,9 +72,33 @@ export default function SearchResults() {
     router.back();
   };
 
+  const handlePlayTrack = (track: any) => {
+    playTrack({
+      id: track.id,
+      title: track.name,
+      artist: track.artist_name,
+      src: track.audio_file_path.urls.mp3,
+      coverUrl: track.image_url?.urls.medium.webp,
+      duration: track.duration_seconds,
+      albumId: track.album_id,
+    });
+  };
+
+  const handleArtistClick = (artistId: string) => {
+    router.push(`/artist/${artistId}`);
+  };
+
+  const handleAlbumClick = (albumId: string) => {
+    router.push(`/album/${albumId}`);
+  };
+
+  const handlePlaylistClick = (playlistId: string) => {
+    router.push(`/playlist/${playlistId}`);
+  };
+
   const renderTrack = (track: any, style: React.CSSProperties) => (
     <div style={style} className="p-2 w-48">
-      <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
+      <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105 cursor-pointer group">
         <div className="relative w-full h-48">
           <Image
             src={track.image_url.urls.medium.webp}
@@ -82,6 +106,14 @@ export default function SearchResults() {
             fill
             className="object-cover"
           />
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
+            <button
+              onClick={() => handlePlayTrack(track)}
+              className="p-3 rounded-full bg-purple-600 text-white opacity-0 group-hover:opacity-100 transform translate-y-3 group-hover:translate-y-0 transition-all"
+            >
+              <PlayIcon className="h-6 w-6" />
+            </button>
+          </div>
         </div>
         <div className="p-3">
           <h3 className="font-semibold text-gray-900 dark:text-white truncate">
@@ -96,28 +128,36 @@ export default function SearchResults() {
   );
 
   const renderArtist = (artist: any, style: React.CSSProperties) => (
-    <div style={style} className="p-2 w-48">
-      <div className="text-center">
+    <div
+      style={style}
+      className="p-2 w-48 cursor-pointer"
+      onClick={() => handleArtistClick(artist.id)}
+    >
+      <div className="text-center transition-transform hover:scale-105">
         <div className="relative w-48 h-48 mb-3">
           <Image
             src={artist.image_url.urls.medium.webp}
             alt={artist.name}
             fill
-            className="object-cover rounded-full transition-transform hover:scale-105"
+            className="object-cover rounded-full"
           />
         </div>
         <h3 className="font-semibold text-gray-900 dark:text-white truncate">
           {artist.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {artist.genre.join(', ')}
+          {artist.genre?.join(', ')}
         </p>
       </div>
     </div>
   );
 
   const renderAlbum = (album: any, style: React.CSSProperties) => (
-    <div style={style} className="p-2 w-48">
+    <div
+      style={style}
+      className="p-2 w-48 cursor-pointer"
+      onClick={() => handleAlbumClick(album.id)}
+    >
       <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
         <div className="relative w-full h-48">
           <Image
@@ -134,6 +174,30 @@ export default function SearchResults() {
           <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
             {album.artist_name}
           </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPlaylist = (playlist: any, style: React.CSSProperties) => (
+    <div
+      style={style}
+      className="p-2 w-48 cursor-pointer"
+      onClick={() => handlePlaylistClick(playlist.id)}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
+        <div className="relative w-full h-48">
+          <Image
+            src={playlist.image_url.urls.medium.webp}
+            alt={playlist.name}
+            fill
+            className="object-cover"
+          />
+        </div>
+        <div className="p-3">
+          <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+            {playlist.name}
+          </h3>
         </div>
       </div>
     </div>
@@ -204,9 +268,21 @@ export default function SearchResults() {
             </section>
           )}
 
+          {data?.search?.playlists?.length > 0 && (
+            <section>
+              <HorizontalList
+                items={data.search.playlists}
+                renderItem={renderPlaylist}
+                height={280}
+                title={t('search.playlists')}
+              />
+            </section>
+          )}
+
           {!data?.search?.tracks?.length &&
             !data?.search?.artists?.length &&
-            !data?.search?.albums?.length && (
+            !data?.search?.albums?.length &&
+            !data?.search?.playlists?.length && (
               <p className="text-center text-gray-500 dark:text-gray-400">
                 {t('search.noResults')}
               </p>

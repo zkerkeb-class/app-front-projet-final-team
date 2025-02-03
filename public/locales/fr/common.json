@@ -11,13 +11,52 @@
   "actions": {
     "save": "Sauvegarder",
     "cancel": "Annuler",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "create": "Créer",
+    "add": "Ajouter",
+    "close": "Fermer"
   },
   "home": {
     "latestReleases": "Dernières sorties",
     "seeAll": "Voir tout",
     "popularArtists": "Artistes populaires",
     "latestAlbums": "Albums récents"
+  },
+  "playlists": {
+    "title": "Mes Playlists",
+    "create": "Créer une playlist",
+    "edit": "Modifier la playlist",
+    "delete": "Supprimer la playlist",
+    "mostPlayed": "Les Plus Écoutés",
+    "recentlyPlayed": "Écoutés Récemment",
+    "mostPlayedDescription": "Top 50 des morceaux les plus écoutés",
+    "recentlyPlayedDescription": "Derniers morceaux écoutés",
+    "empty": "Cette playlist ne contient aucun morceau",
+    "noPlaylists": "Vous n'avez pas encore créé de playlist",
+    "tracks": {
+      "zero": "0 morceau",
+      "one": "1 morceau",
+      "other": "{{count}} morceaux"
+    },
+    "addTracks": "Ajouter des morceaux",
+    "noTracksToAdd": "Aucun morceau disponible à ajouter",
+    "playAll": "Tout lire",
+    "successCreate": "Playlist créée avec succès",
+    "successUpdate": "Playlist mise à jour avec succès",
+    "successDelete": "Playlist supprimée avec succès",
+    "successAddTracks": "Morceaux ajoutés avec succès",
+    "successRemoveTrack": "Morceau supprimé avec succès",
+    "errors": {
+      "loadFailed": "Impossible de charger les playlists",
+      "createFailed": "Impossible de créer la playlist",
+      "updateFailed": "Impossible de mettre à jour la playlist",
+      "deleteFailed": "Impossible de supprimer la playlist",
+      "addTracksFailed": "Impossible d'ajouter les morceaux",
+      "removeTrackFailed": "Impossible de supprimer le morceau",
+      "loadTracksFailed": "Impossible de charger les morceaux"
+    }
   },
   "footer": {
     "description": "Votre plateforme de streaming musical préférée",
@@ -31,14 +70,15 @@
   "search": {
     "placeholder": "Rechercher des titres, artistes, albums...",
     "noResults": "Aucun résultat trouvé",
-    "error": "Une erreur est survenue",
+    "error": "Une erreur est survenue lors de la recherche",
     "backToResults": "Retour aux résultats",
     "resultsFor": "Résultats pour",
     "loadMore": "Charger plus",
     "noMoreResults": "Plus de résultats disponibles",
     "tracks": "Titres",
     "artists": "Artistes",
-    "albums": "Albums"
+    "albums": "Albums",
+    "playlists": "Playlists"
   },
   "auth": {
     "loginTitle": "Connectez-vous pour continuer",
@@ -63,6 +103,7 @@
     }
   },
   "errors": {
-    "serverError": "Une erreur est survenue sur le serveur"
+    "serverError": "Une erreur est survenue sur le serveur",
+    "unauthorized": "Veuillez vous connecter pour continuer"
   }
 }

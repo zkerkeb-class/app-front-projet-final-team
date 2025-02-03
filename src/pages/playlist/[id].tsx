@@ -10,6 +10,9 @@ import { Track, ApiTrack, mapTrackFromApi } from '@/types/track';
 import { toast } from 'react-hot-toast';
 import { TrashIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'react-i18next';
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 export async function getStaticPaths() {
   return {
@@ -31,14 +34,20 @@ export default function PlaylistDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const { setQueue, currentTrack, isPlaying, togglePlayPause, playTrack } =
     useAudio();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddTrackModal, setShowAddTrackModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
   const [availableTracks, setAvailableTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<number[]>([]);
   const [isLoadingTracks, setIsLoadingTracks] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [popularTracks, setPopularTracks] = useState<Track[]>([]);
 
   const fetchSpecialPlaylist = async () => {
     try {
@@ -100,22 +109,38 @@ export default function PlaylistDetailsPage() {
     }
   };
 
-  const fetchAvailableTracks = async () => {
-    if (!user) return;
+  const fetchPopularTracks = async () => {
+    try {
+      setIsLoadingTracks(true);
+      const response = await TrackService.getMostPlayed(10);
+      const tracks = (response as unknown as ApiTrack[]).map(mapTrackFromApi);
+      setPopularTracks(tracks);
+      setAvailableTracks(tracks);
+    } catch (error) {
+      console.error(
+        'Erreur lors de la récupération des morceaux populaires:',
+        error,
+      );
+      toast.error(t('playlists.errors.loadTracksFailed'));
+    } finally {
+      setIsLoadingTracks(false);
+    }
+  };
+
+  const searchTracks = async () => {
+    if (!searchQuery.trim()) {
+      setAvailableTracks(popularTracks);
+      return;
+    }
 
     try {
       setIsLoadingTracks(true);
-      const tracks = (await TrackService.getUserTracks(
-        user.id,
-      )) as unknown as ApiTrack[];
-      // Filter out tracks that are already in the playlist
-      const availableTracks = tracks
-        .map(mapTrackFromApi)
-        .filter((track) => !playlist?.tracks.some((pt) => pt.id === track.id));
-      setAvailableTracks(availableTracks);
+      const response = await TrackService.searchTracks(searchQuery);
+      const tracks = (response as unknown as ApiTrack[]).map(mapTrackFromApi);
+      setAvailableTracks(tracks);
     } catch (error) {
-      console.error('Erreur lors de la récupération des morceaux:', error);
-      toast.error('Impossible de charger les morceaux disponibles');
+      console.error('Erreur lors de la recherche des morceaux:', error);
+      toast.error(t('search.error'));
     } finally {
       setIsLoadingTracks(false);
     }
@@ -129,22 +154,40 @@ export default function PlaylistDetailsPage() {
 
   useEffect(() => {
     if (showAddTrackModal) {
-      fetchAvailableTracks();
+      fetchPopularTracks();
+    } else {
+      setSearchQuery('');
+      setSelectedTracks([]);
     }
   }, [showAddTrackModal]);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      searchTracks();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (playlist) {
+      setEditedTitle(playlist.title);
+      setEditedDescription(playlist.description || '');
+    }
+  }, [playlist]);
 
   const handleAddTracks = async () => {
     if (!playlist || typeof playlist.id !== 'number') return;
 
     try {
       await PlaylistService.addTracksToPlaylist(playlist.id, selectedTracks);
-      toast.success('Morceaux ajoutés avec succès');
+      toast.success(t('playlists.successAddTracks'));
       setShowAddTrackModal(false);
       setSelectedTracks([]);
       fetchPlaylist();
     } catch (error) {
       console.error("Erreur lors de l'ajout des morceaux:", error);
-      toast.error("Impossible d'ajouter les morceaux");
+      toast.error(t('playlists.errors.addTracksFailed'));
     }
   };
 
@@ -152,12 +195,12 @@ export default function PlaylistDetailsPage() {
     if (!playlist || typeof playlist.id !== 'number') return;
 
     try {
-      await PlaylistService.removeTracksFromPlaylist(playlist.id, [trackId]);
-      toast.success('Morceau supprimé avec succès');
+      await PlaylistService.removeTracksFromPlaylist(playlist.id, trackId);
+      toast.success(t('playlists.successRemoveTrack'));
       fetchPlaylist();
     } catch (error) {
       console.error('Erreur lors de la suppression du morceau:', error);
-      toast.error('Impossible de supprimer le morceau');
+      toast.error(t('playlists.errors.removeTrackFailed'));
     }
   };
 
@@ -184,11 +227,29 @@ export default function PlaylistDetailsPage() {
     }
   };
 
+  const handleUpdatePlaylist = async () => {
+    if (!playlist || typeof playlist.id !== 'number') return;
+
+    try {
+      const formData = new FormData();
+      formData.append('title', editedTitle);
+      formData.append('description', editedDescription);
+
+      await PlaylistService.updatePlaylist(playlist.id, formData);
+      toast.success(t('playlists.successUpdate'));
+      setIsEditing(false);
+      fetchPlaylist();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la playlist:', error);
+      toast.error(t('playlists.errors.updateFailed'));
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Veuillez vous connecter pour voir cette playlist
+          {t('errors.unauthorized')}
         </p>
       </div>
     );
@@ -206,7 +267,7 @@ export default function PlaylistDetailsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-lg text-gray-600 dark:text-gray-400">
-          Playlist introuvable
+          {t('playlists.empty')}
         </p>
       </div>
     );
@@ -215,24 +276,71 @@ export default function PlaylistDetailsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {playlist.title}
-          </h1>
-          {playlist.description && (
-            <p className="text-gray-600 dark:text-gray-400">
-              {playlist.description}
-            </p>
+        <div className="flex-1">
+          {isEditing ? (
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className="w-full text-3xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-purple-500 focus:ring-0 px-0"
+                placeholder={t('playlists.title')}
+              />
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-purple-500 focus:ring-0 px-0 resize-none"
+                placeholder={t('playlists.description')}
+                rows={2}
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleUpdatePlaylist}
+                  className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  {t('actions.save')}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedTitle(playlist.title);
+                    setEditedDescription(playlist.description || '');
+                  }}
+                  className="px-3 py-1 text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                >
+                  {t('actions.cancel')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                {playlist.title}
+              </h1>
+              {playlist.description && (
+                <p className="text-gray-600 dark:text-gray-400">
+                  {playlist.description}
+                </p>
+              )}
+            </>
           )}
         </div>
         <div className="flex items-center space-x-4">
+          {!['mostplayed', 'recent'].includes(id as string) && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="px-4 py-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+            >
+              {isEditing ? t('actions.cancel') : t('actions.edit')}
+            </button>
+          )}
           {playlist && playlist.tracks.length > 0 && (
             <button
               onClick={handlePlayAll}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center space-x-2"
             >
               <PlayIcon className="w-4 h-4" />
-              <span>Tout lire</span>
+              <span>{t('playlists.playAll')}</span>
             </button>
           )}
           {!['mostplayed', 'recent'].includes(id as string) && (
@@ -240,7 +348,7 @@ export default function PlaylistDetailsPage() {
               onClick={() => setShowAddTrackModal(true)}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
-              Ajouter des morceaux
+              {t('playlists.addTracks')}
             </button>
           )}
         </div>
@@ -248,7 +356,7 @@ export default function PlaylistDetailsPage() {
 
       {playlist.tracks.length === 0 ? (
         <p className="text-center text-gray-600 dark:text-gray-400">
-          Cette playlist ne contient aucun morceau
+          {t('playlists.empty')}
         </p>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
@@ -307,14 +415,24 @@ export default function PlaylistDetailsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Ajouter des morceaux
+                {t('playlists.addTracks')}
               </h2>
               <button
                 onClick={() => setShowAddTrackModal(false)}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               >
-                Fermer
+                {t('actions.close')}
               </button>
+            </div>
+
+            <div className="mb-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t('search.placeholder')}
+                className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+              />
             </div>
 
             <div className="max-h-96 overflow-y-auto">
@@ -324,62 +442,122 @@ export default function PlaylistDetailsPage() {
                 </div>
               ) : availableTracks.length === 0 ? (
                 <p className="text-center text-gray-600 dark:text-gray-400 py-8">
-                  Aucun morceau disponible à ajouter
+                  {searchQuery
+                    ? t('search.noResults')
+                    : t('playlists.noTracksToAdd')}
                 </p>
               ) : (
-                availableTracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className="flex items-center space-x-4 p-4 border-b border-gray-200 dark:border-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTracks.includes(track.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedTracks([...selectedTracks, track.id]);
-                        } else {
-                          setSelectedTracks(
-                            selectedTracks.filter((id) => id !== track.id),
+                <div style={{ height: '400px' }}>
+                  <AutoSizer>
+                    {({ height, width }: { height: number; width: number }) => (
+                      <List
+                        height={height}
+                        itemCount={availableTracks.length}
+                        itemSize={80}
+                        width={width}
+                      >
+                        {({ index, style }) => {
+                          const track = availableTracks[index];
+                          return (
+                            <div
+                              style={style}
+                              className="flex items-center space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <button
+                                onClick={() => {
+                                  if (selectedTracks.includes(track.id)) {
+                                    setSelectedTracks(
+                                      selectedTracks.filter(
+                                        (id) => id !== track.id,
+                                      ),
+                                    );
+                                  } else {
+                                    setSelectedTracks([
+                                      ...selectedTracks,
+                                      track.id,
+                                    ]);
+                                  }
+                                }}
+                                className={`p-2 rounded-full transition-colors ${
+                                  selectedTracks.includes(track.id)
+                                    ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400'
+                                    : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
+                              >
+                                {selectedTracks.includes(track.id) ? (
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                              {track.coverUrl && (
+                                <img
+                                  src={track.coverUrl}
+                                  alt={track.title}
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <h3 className="text-gray-900 dark:text-white font-medium">
+                                  {track.title}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {track.artist}
+                                </p>
+                              </div>
+                            </div>
                           );
-                        }
-                      }}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                    />
-                    {track.coverUrl && (
-                      <img
-                        src={track.coverUrl}
-                        alt={track.title}
-                        className="w-12 h-12 object-cover rounded"
-                      />
+                        }}
+                      </List>
                     )}
-                    <div>
-                      <h3 className="text-gray-900 dark:text-white font-medium">
-                        {track.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {track.artist}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  </AutoSizer>
+                </div>
               )}
             </div>
 
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddTrackModal(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleAddTracks}
-                disabled={selectedTracks.length === 0}
-                className="px-4 py-2 text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Ajouter
-              </button>
+            <div className="mt-6 flex justify-between items-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t('playlists.tracks', { count: selectedTracks.length })}
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowAddTrackModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                >
+                  {t('actions.cancel')}
+                </button>
+                <button
+                  onClick={handleAddTracks}
+                  disabled={selectedTracks.length === 0}
+                  className="px-4 py-2 text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('actions.save')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

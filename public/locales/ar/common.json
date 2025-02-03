@@ -1,4 +1,110 @@
 {
-    "welcome": "مرحبا بكم في زاكهارموني"
+    "welcome": "!ZakHarmony مرحباً بك في",
+    "language": "اللغة",
+    "listeners": "مستمعين",
+    "back": "رجوع",
+    "menu": {
+      "home": "الرئيسية",
+      "profile": "الملف الشخصي",
+      "settings": "الإعدادات"
+    },
+    "actions": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "create": "إنشاء",
+      "add": "إضافة",
+      "close": "إغلاق"
+    },
+    "home": {
+      "latestReleases": "أحدث الإصدارات",
+      "seeAll": "عرض الكل",
+      "popularArtists": "الفنانون المشهورون",
+      "latestAlbums": "أحدث الألبومات"
+    },
+    "playlists": {
+      "title": "قوائم التشغيل الخاصة بي",
+      "create": "إنشاء قائمة تشغيل",
+      "edit": "تعديل قائمة التشغيل",
+      "delete": "حذف قائمة التشغيل",
+      "mostPlayed": "الأكثر تشغيلاً",
+      "recentlyPlayed": "تم تشغيله مؤخراً",
+      "mostPlayedDescription": "أفضل 50 مقطع تم تشغيله",
+      "recentlyPlayedDescription": "المقاطع التي تم تشغيلها مؤخراً",
+      "empty": "قائمة التشغيل هذه فارغة",
+      "noPlaylists": "لم تقم بإنشاء أي قوائم تشغيل بعد",
+      "tracks": {
+        "zero": "0 مقطع",
+        "one": "مقطع واحد",
+        "other": "{{count}} مقطع"
+      },
+      "addTracks": "إضافة مقاطع",
+      "noTracksToAdd": "لا توجد مقاطع متاحة للإضافة",
+      "playAll": "تشغيل الكل",
+      "successCreate": "تم إنشاء قائمة التشغيل بنجاح",
+      "successUpdate": "تم تحديث قائمة التشغيل بنجاح",
+      "successDelete": "تم حذف قائمة التشغيل بنجاح",
+      "successAddTracks": "تمت إضافة المقاطع بنجاح",
+      "successRemoveTrack": "تم إزالة المقطع بنجاح",
+      "errors": {
+        "loadFailed": "تعذر تحميل قوائم التشغيل",
+        "createFailed": "تعذر إنشاء قائمة التشغيل",
+        "updateFailed": "تعذر تحديث قائمة التشغيل",
+        "deleteFailed": "تعذر حذف قائمة التشغيل",
+        "addTracksFailed": "تعذر إضافة المقاطع",
+        "removeTrackFailed": "تعذر إزالة المقطع",
+        "loadTracksFailed": "تعذر تحميل المقاطع"
+      }
+    },
+    "footer": {
+      "description": "منصة البث الموسيقي المفضلة لديك",
+      "links": "روابط مفيدة",
+      "about": "حول",
+      "contact": "اتصل بنا",
+      "terms": "شروط الاستخدام",
+      "social": "وسائل التواصل الاجتماعي",
+      "rights": "جميع الحقوق محفوظة."
+    },
+    "search": {
+      "placeholder": "البحث عن مقاطع، فنانين، ألبومات...",
+      "noResults": "لم يتم العثور على نتائج",
+      "error": "حدث خطأ أثناء البحث",
+      "backToResults": "العودة إلى النتائج",
+      "resultsFor": "نتائج البحث عن",
+      "loadMore": "تحميل المزيد",
+      "noMoreResults": "لا توجد نتائج إضافية",
+      "tracks": "المقاطع",
+      "artists": "الفنانون",
+      "albums": "الألبومات",
+      "playlists": "قوائم التشغيل"
+    },
+    "auth": {
+      "loginTitle": "تسجيل الدخول للمتابعة",
+      "password": "كلمة المرور",
+      "login": "تسجيل الدخول",
+      "loggingIn": "جاري تسجيل الدخول...",
+      "register": "إنشاء حساب",
+      "noAccount": "ليس لديك حساب؟",
+      "registerTitle": "إنشاء حساب جديد",
+      "hasAccount": "لديك حساب بالفعل؟",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "username": "اسم المستخدم",
+      "userType": "نوع الحساب",
+      "userTypeStandard": "مستمع",
+      "userTypeArtist": "فنان",
+      "registering": "جاري إنشاء الحساب...",
+      "profilePicture": "صورة الملف الشخصي",
+      "errors": {
+        "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        "registrationFailed": "فشل في إنشاء الحساب"
+      }
+    },
+    "errors": {
+      "serverError": "حدث خطأ في الخادم",
+      "unauthorized": "يرجى تسجيل الدخول للمتابعة"
+    }
   }
   

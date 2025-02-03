@@ -22,11 +22,7 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true, // Mode strict de React
-  i18n: {
-    defaultLocale: 'fr',
-    locales: ['fr', 'en'],
-    localeDetection: false,
-  },
+  i18n: nextI18NextConfig.i18n, // Utiliser la même configuration i18n que next-i18next
   images: {
     remotePatterns: [
       {
