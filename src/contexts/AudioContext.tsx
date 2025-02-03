@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import RecentlyPlayedService from '@/services/localStorage/recentlyPlayed.service';
+import TrackService from '@/services/api/track.service';
 
 // Default track definition
 const defaultTrack = {
@@ -10,18 +12,13 @@ const defaultTrack = {
   albumId: '0',
 };
 
+type FormattedTrack = typeof defaultTrack;
+
 interface AudioContextType {
-  currentTrack: {
-    id: string;
-    src: string;
-    title: string;
-    artist: string;
-    coverUrl: string;
-    albumId: string;
-  };
+  currentTrack: FormattedTrack;
   isPlaying: boolean;
   isTrackChanging: boolean;
-  setCurrentTrack: (track: AudioContextType['currentTrack']) => void;
+  setCurrentTrack: (track: FormattedTrack) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   setIsTrackChanging: (isChanging: boolean) => void;
 }
@@ -30,15 +27,29 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] =
-    useState<AudioContextType['currentTrack']>(defaultTrack);
+    useState<FormattedTrack>(defaultTrack);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTrackChanging, setIsTrackChanging] = useState(false);
 
-  const value = {
+  const handleTrackChange = async (track: FormattedTrack) => {
+    try {
+      setCurrentTrack(track);
+      if (track.id !== '0') {
+        const trackData = await TrackService.getTrack(Number(track.id));
+        if (trackData) {
+          RecentlyPlayedService.addTrack(trackData);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du changement de piste:', error);
+    }
+  };
+
+  const value: AudioContextType = {
     currentTrack,
     isPlaying,
     isTrackChanging,
-    setCurrentTrack,
+    setCurrentTrack: handleTrackChange,
     setIsPlaying,
     setIsTrackChanging,
   };

@@ -40,15 +40,15 @@ const SEARCH_QUERY = gql`
 `;
 
 const SearchSkeleton = () => (
-  <div className="py-2">
+  <div className="py-2 min-h-[300px]">
     {Array.from({ length: 3 }).map((_, categoryIndex) => (
-      <div key={categoryIndex}>
+      <div key={categoryIndex} className="min-h-[100px]">
         <div className="px-3 py-1">
           <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
         </div>
         {Array.from({ length: 2 }).map((_, itemIndex) => (
           <div key={itemIndex} className="p-3 flex items-center space-x-3">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 w-[20px] h-[20px]">
               <div className="h-5 w-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
             </div>
             <div className="flex-1">

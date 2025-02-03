@@ -37,3 +37,40 @@ input[type="range"] {
   .group:active .h-3 {
     transform: scale(1.2) translateX(-50%);
   }
+
+/* Prevent layout shifts */
+.content-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure smooth transitions */
+.layout-transition {
+  transition: width 0.3s ease-in-out, margin 0.3s ease-in-out;
+}
+
+/* Prevent layout shifts for images */
+.image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: theme('colors.gray.200');
+  overflow: hidden;
+}
+
+.image-container.dark {
+  background-color: theme('colors.gray.700');
+}
+
+.image-container img {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.image-container img.loading {
+  opacity: 0;
+}
+
+.image-container img.loaded {
+  opacity: 1;
+}

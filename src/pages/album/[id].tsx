@@ -76,7 +76,7 @@ export interface AlbumDetails {
 export async function getStaticPaths() {
   return {
     paths: [],
-    fallback: 'blocking',
+    fallback: true,
   };
 }
 
@@ -108,6 +108,7 @@ export default function AlbumDetail() {
             "Erreur lors de la récupération des détails de l'album:",
             error,
           );
+          router.push('/404');
         } finally {
           setLoading(false);
         }
@@ -115,9 +116,9 @@ export default function AlbumDetail() {
     };
 
     fetchAlbumDetails();
-  }, [id]);
+  }, [id, router]);
 
-  if (loading) {
+  if (router.isFallback || loading) {
     return <AlbumSkeleton />;
   }
 

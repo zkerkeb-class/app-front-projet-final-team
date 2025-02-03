@@ -1,70 +1,72 @@
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
-// import { gql } from '@apollo/client';
+import { gql, useQuery } from '@apollo/client';
 import HorizontalList from '@/components/common/HorizontalList';
 import Image from 'next/image';
 
-// const SEARCH_RESULTS_QUERY = gql`
-//   query SearchResults($input: SearchInput!) {
-//     search(input: $input) {
-//       tracks {
-//         name
-
-//       }
-//       artists {
-//         name
-
-//       }
-//       albums {
-//         name
-
-//       }
-//     }
-//   }
-// `;
-
-const mockData = {
-  tracks: Array.from({ length: 10 }, (_, i) => ({
-    id: `track-${i}`,
-    name: `Titre ${i + 1}`,
-    artist: { name: `Artiste ${i + 1}` },
-    coverUrl: `https://picsum.photos/200/200?random=${i}`,
-    duration: '3:30',
-  })),
-  artists: Array.from({ length: 10 }, (_, i) => ({
-    id: `artist-${i}`,
-    name: `Artiste ${i + 1}`,
-    imageUrl: `https://picsum.photos/200/200?random=${i + 100}`,
-    followers: Math.floor(Math.random() * 1000000),
-  })),
-  albums: Array.from({ length: 10 }, (_, i) => ({
-    id: `album-${i}`,
-    name: `Album ${i + 1}`,
-    artist: { name: `Artiste ${i + 1}` },
-    coverUrl: `https://picsum.photos/200/200?random=${i + 200}`,
-    releaseDate: new Date(
-      Date.now() - Math.random() * 7776000000,
-    ).toLocaleDateString(),
-  })),
-};
+const SEARCH_RESULTS_QUERY = gql`
+  query SearchResults($input: SearchInput!) {
+    search(input: $input) {
+      tracks {
+        id
+        name
+        album_id
+        album_name
+        artist_id
+        artist_name
+        duration
+        image_url
+      }
+      artists {
+        id
+        name
+        genre
+        popularityScore
+        image_url
+      }
+      albums {
+        id
+        name
+        releaseDate
+        genre
+        artist_id
+        artist_name
+        totalTracks
+        image_url
+      }
+    }
+  }
+`;
 
 export default function SearchResults() {
   const { t } = useTranslation('common');
   const router = useRouter();
   const { q: searchQuery } = router.query;
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Simuler un temps de chargement
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+  const { data, loading: queryLoading } = useQuery(SEARCH_RESULTS_QUERY, {
+    variables: {
+      input: {
+        query: searchQuery,
+        limit: 10,
+      },
+    },
+    skip: !searchQuery || !router.isReady,
+  });
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  if (!router.isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  if (!searchQuery) {
+    router.push('/');
+    return null;
+  }
 
   const handleBack = () => {
     router.back();
@@ -75,7 +77,7 @@ export default function SearchResults() {
       <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
         <div className="relative w-full h-48">
           <Image
-            src={track.coverUrl}
+            src={track.image_url.urls.medium.webp}
             alt={track.name}
             fill
             className="object-cover"
@@ -86,7 +88,7 @@ export default function SearchResults() {
             {track.name}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-            {track.artist.name}
+            {track.artist_name}
           </p>
         </div>
       </div>
@@ -98,7 +100,7 @@ export default function SearchResults() {
       <div className="text-center">
         <div className="relative w-48 h-48 mb-3">
           <Image
-            src={artist.imageUrl}
+            src={artist.image_url.urls.medium.webp}
             alt={artist.name}
             fill
             className="object-cover rounded-full transition-transform hover:scale-105"
@@ -108,7 +110,7 @@ export default function SearchResults() {
           {artist.name}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {new Intl.NumberFormat().format(artist.followers)} followers
+          {artist.genre.join(', ')}
         </p>
       </div>
     </div>
@@ -119,7 +121,7 @@ export default function SearchResults() {
       <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
         <div className="relative w-full h-48">
           <Image
-            src={album.coverUrl}
+            src={album.image_url.urls.medium.webp}
             alt={album.name}
             fill
             className="object-cover"
@@ -130,7 +132,7 @@ export default function SearchResults() {
             {album.name}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-            {album.artist.name}
+            {album.artist_name}
           </p>
         </div>
       </div>
@@ -151,7 +153,7 @@ export default function SearchResults() {
         {t('search.resultsFor')} &quot;{searchQuery}&quot;
       </h1>
 
-      {loading ? (
+      {queryLoading ? (
         <div className="space-y-8">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
@@ -169,19 +171,10 @@ export default function SearchResults() {
         </div>
       ) : (
         <div className="space-y-8">
-          {mockData.tracks.length > 0 && (
+          {data?.search?.tracks?.length > 0 && (
             <section>
-              {/* <Link 
-                href={`/search/tracks?q=${searchQuery}`}
-                className="group flex items-center justify-between mb-4"
-              >
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {t('search.tracks')}
-                </h2>
-                <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-purple-500" />
-              </Link> */}
               <HorizontalList
-                items={mockData.tracks}
+                items={data.search.tracks}
                 renderItem={renderTrack}
                 height={280}
                 title={t('search.tracks')}
@@ -189,19 +182,10 @@ export default function SearchResults() {
             </section>
           )}
 
-          {mockData.artists.length > 0 && (
+          {data?.search?.artists?.length > 0 && (
             <section>
-              {/* <Link 
-                href={`/search/artists?q=${searchQuery}`}
-                className="group flex items-center justify-between mb-4"
-              >
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {t('search.artists')}
-                </h2>
-                <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-purple-500" />
-              </Link> */}
               <HorizontalList
-                items={mockData.artists}
+                items={data.search.artists}
                 renderItem={renderArtist}
                 height={280}
                 title={t('search.artists')}
@@ -209,32 +193,46 @@ export default function SearchResults() {
             </section>
           )}
 
-          {mockData.albums.length > 0 && (
+          {data?.search?.albums?.length > 0 && (
             <section>
-              {/* <Link 
-                href={`/search/albums?q=${searchQuery}`}
-                className="group flex items-center justify-between mb-4"
-              >
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {t('search.albums')}
-                </h2>
-                <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-purple-500" />
-              </Link> */}
               <HorizontalList
-                items={mockData.albums}
+                items={data.search.albums}
                 renderItem={renderAlbum}
                 height={280}
                 title={t('search.albums')}
               />
             </section>
           )}
+
+          {!data?.search?.tracks?.length &&
+            !data?.search?.artists?.length &&
+            !data?.search?.albums?.length && (
+              <p className="text-center text-gray-500 dark:text-gray-400">
+                {t('search.noResults')}
+              </p>
+            )}
         </div>
       )}
     </div>
   );
 }
 
-export async function getStaticProps({ locale }: { locale: string }) {
+export async function getServerSideProps({
+  locale,
+  query,
+}: {
+  locale: string;
+  query: { q?: string };
+}) {
+  if (!query.q) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+  }
+
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),

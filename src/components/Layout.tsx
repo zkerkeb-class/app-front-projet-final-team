@@ -1,17 +1,31 @@
+import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import LanguageSwitcher from './i18n';
 import { useTheme } from '../hooks/useTheme';
 import { SunIcon, MoonIcon, UserIcon } from '@heroicons/react/24/outline';
 import { AudioProvider } from '@/contexts/AudioContext';
-import AudioPlayer from './AudioPlayer';
-import LibrarySidebar from './LibrarySidebar';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import gsap from 'gsap';
 import SearchBar from './SearchBar';
 import { useRouter } from 'next/router';
+
+// Chargement dynamique des composants non-critiques
+const LanguageSwitcher = dynamic(() => import('./i18n'), {
+  ssr: false,
+  loading: () => <div className="w-8 h-8" />,
+});
+
+const AudioPlayer = dynamic(() => import('./AudioPlayer'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const LibrarySidebar = dynamic(() => import('./LibrarySidebar'), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface LayoutProps {
   children: ReactNode;
@@ -75,9 +89,9 @@ function UserMenu() {
   return (
     <div className="relative group">
       <button className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400">
-        {user.profile_picture_url ? (
+        {user.image_url ? (
           <img
-            src={user.profile_picture_url}
+            src={user.image_url.thumbnail.webp}
             alt={user.username}
             className="w-8 h-8 rounded-full object-cover"
           />
@@ -116,8 +130,6 @@ function LayoutContent({ children }: LayoutProps) {
   const { isExpanded } = useSidebar();
   const mainRef = useRef<HTMLElement>(null);
   const router = useRouter();
-
-  // Vérifier si on est sur une page d'authentification
   const isAuthPage = router.pathname.startsWith('/auth/');
 
   useEffect(() => {
@@ -146,6 +158,9 @@ function LayoutContent({ children }: LayoutProps) {
                 <button
                   onClick={toggleTheme}
                   className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  aria-label={
+                    isDarkMode ? t('theme.lightMode') : t('theme.darkMode')
+                  }
                 >
                   {isDarkMode ? (
                     <SunIcon className="h-5 w-5" />
@@ -163,8 +178,12 @@ function LayoutContent({ children }: LayoutProps) {
             {!isAuthPage && <LibrarySidebar />}
             <main
               ref={mainRef}
-              className={`flex-1 overflow-y-auto ${isAuthPage ? 'p-0' : 'p-4'}`}
-              style={{ marginLeft: isAuthPage ? '0' : undefined }}
+              className={`flex-1 overflow-y-auto ${isAuthPage ? 'p-0' : 'p-4'} min-h-[calc(100vh-64px)]`}
+              style={{
+                marginLeft: isAuthPage ? '0' : undefined,
+                height: 'calc(100vh - 64px)',
+                width: isExpanded ? 'calc(100% - 256px)' : 'calc(100% - 56px)',
+              }}
             >
               {children}
             </main>
@@ -191,28 +210,28 @@ function LayoutContent({ children }: LayoutProps) {
                     </h3>
                     <ul className="space-y-2">
                       <li>
-                        <a
+                        <Link
                           href="#"
                           className="text-purple-600 dark:text-purple-400 hover:underline"
                         >
                           {t('footer.about')}
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <a
+                        <Link
                           href="#"
                           className="text-purple-600 dark:text-purple-400 hover:underline"
                         >
                           {t('footer.contact')}
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <a
+                        <Link
                           href="#"
                           className="text-purple-600 dark:text-purple-400 hover:underline"
                         >
                           {t('footer.terms')}
-                        </a>
+                        </Link>
                       </li>
                     </ul>
                   </div>
@@ -222,24 +241,24 @@ function LayoutContent({ children }: LayoutProps) {
                       {t('footer.social')}
                     </h3>
                     <div className="flex space-x-4">
-                      <a
+                      <Link
                         href="#"
                         className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
                       >
                         Twitter
-                      </a>
-                      <a
+                      </Link>
+                      <Link
                         href="#"
                         className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
                       >
                         Facebook
-                      </a>
-                      <a
+                      </Link>
+                      <Link
                         href="#"
                         className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
                       >
                         Instagram
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>

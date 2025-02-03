@@ -9,12 +9,15 @@ import { Artist } from '@/components/home/PopularArtists';
  */
 const ArtistService = {
   /**
-   * Get popular artists
+   * Get popular artists with pagination
    */
-  async getPopularArtists(limit: number = 40): Promise<Artist[]> {
+  async getPopularArtists(
+    limit: number = 10,
+    page: number = 1,
+  ): Promise<Artist[]> {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/artists/top?limit=${limit}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/artists/top?limit=${limit}&page=${page}`,
       );
       if (!response.ok) {
         throw new Error(
@@ -22,7 +25,6 @@ const ArtistService = {
         );
       }
       const data = await response.json();
-      console.log('Popular artists data:', data);
       return data;
     } catch (error) {
       console.error('Erreur API getPopularArtists:', error);
