@@ -1,6 +1,6 @@
-import { Album } from '@/components/home/LatestAlbums';
 import { AlbumDetails } from '@/pages/album/[id]';
 import toast from 'react-hot-toast';
+import { Album } from '@/types/album';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -14,64 +14,95 @@ interface PaginatedResponse<T> {
   };
 }
 
-class ApiError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    public data?: any,
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+interface AlbumCreate {
+  title: string;
+  release_date: string;
+  genre: string;
+  coverImage?: File;
+  tracks: FormData[];
 }
 
-const AlbumService = {
-  async getLatestAlbums(
-    limit: number = 10,
-    page: number = 1,
-  ): Promise<PaginatedResponse<Album>> {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/albums?limit=${limit}&page=${page}&sort=release_date:desc`,
-      );
+/**
+ * Service for managing albums (CRUD operations)
+ */
+class AlbumService {
+  private static getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
-      if (!response.ok) {
-        throw new ApiError(
-          'Erreur lors de la récupération des albums',
-          response.status,
-          await response.json(),
-        );
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        toast.error(error.message);
-        throw error;
-      }
-
-      if (error instanceof TypeError) {
-        toast.error('Erreur de connexion au serveur');
-        throw new ApiError('Erreur de connexion au serveur');
-      }
-
-      toast.error('Une erreur inattendue est survenue');
-      throw new ApiError('Une erreur inattendue est survenue');
+  /**
+   * Create a new album with tracks
+   */
+  static async createAlbum(formData: FormData): Promise<Album> {
+    const response = await fetch(`${API_URL}/albums`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error("Erreur lors de la création de l'album");
     }
-  },
+    return response.json();
+  }
 
-  async getAlbumDetails(id: string): Promise<AlbumDetails> {
+  /**
+   * Update an album
+   */
+  static async updateAlbum(id: number, formData: FormData): Promise<Album> {
+    const response = await fetch(`${API_URL}/albums/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error("Erreur lors de la mise à jour de l'album");
+    }
+    return response.json();
+  }
+
+  /**
+   * Delete an album
+   */
+  static async deleteAlbum(id: number): Promise<void> {
+    const response = await fetch(`${API_URL}/albums/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error("Erreur lors de la suppression de l'album");
+    }
+  }
+
+  /**
+   * Get all albums for a user
+   */
+  static async getUserAlbums(userId: string): Promise<Album[]> {
+    const response = await fetch(`${API_URL}/albums/user/${userId}`, {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Erreur lors de la récupération des albums');
+    }
+    return response.json();
+  }
+
+  /**
+   * Get album details
+   */
+  static async getAlbumDetails(id: string | number): Promise<AlbumDetails> {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/albums/${id}`,
-      );
+      const response = await fetch(`${API_URL}/albums/${id}`, {
+        headers: this.getHeaders(),
+      });
 
       if (!response.ok) {
-        throw new ApiError(
+        throw new Error(
           "Erreur lors de la récupération des détails de l'album",
-          response.status,
-          await response.json(),
         );
       }
 
@@ -85,20 +116,44 @@ const AlbumService = {
         })),
       };
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         toast.error(error.message);
         throw error;
       }
+      toast.error('Une erreur inattendue est survenue');
+      throw new Error('Une erreur inattendue est survenue');
+    }
+  }
 
-      if (error instanceof TypeError) {
-        toast.error('Erreur de connexion au serveur');
-        throw new ApiError('Erreur de connexion au serveur');
+  /**
+   * Get latest albums with pagination
+   */
+  static async getLatestAlbums(
+    limit: number = 10,
+    page: number = 1,
+  ): Promise<PaginatedResponse<Album>> {
+    try {
+      const response = await fetch(
+        `${API_URL}/albums?limit=${limit}&page=${page}&sort=release_date:desc`,
+        {
+          headers: this.getHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des albums');
       }
 
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+        throw error;
+      }
       toast.error('Une erreur inattendue est survenue');
-      throw new ApiError('Une erreur inattendue est survenue');
+      throw new Error('Une erreur inattendue est survenue');
     }
-  },
-};
+  }
+}
 
 export default AlbumService;

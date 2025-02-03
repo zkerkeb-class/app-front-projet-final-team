@@ -1,13 +1,26 @@
 import { useRouter } from 'next/router';
 import Select from '../common/Select';
+import { useEffect, useState } from 'react';
 
 export default function LanguageSwitcher() {
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const languageOptions = [
-    { value: 'fr', label: 'Français' },
-    { value: 'en', label: 'English' },
-    { value: 'ar', label: 'العربية' },
+    { value: 'fr', label: isMobile ? 'FR' : 'Français' },
+    { value: 'en', label: isMobile ? 'EN' : 'English' },
+    { value: 'ar', label: isMobile ? 'AR' : 'العربية' },
   ];
 
   const changeLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -21,7 +34,7 @@ export default function LanguageSwitcher() {
       options={languageOptions}
       onChange={changeLanguage}
       defaultValue={router.locale}
-      className="min-w-[120px]"
+      className={`${isMobile ? 'min-w-[80px]' : 'min-w-[120px]'}`}
     />
   );
 }

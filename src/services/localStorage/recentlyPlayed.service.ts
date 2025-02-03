@@ -1,4 +1,4 @@
-import { Track } from '@/pages/playlists';
+import { Track } from '@/types/audio';
 
 const STORAGE_KEY = 'recently_played';
 const MAX_TRACKS = 20;
@@ -34,7 +34,7 @@ class RecentlyPlayedService {
     }
   }
 
-  addTrack(track: Track): void {
+  addTrack(track: any): void {
     try {
       const recentTracks = this.getRecentlyPlayed();
 

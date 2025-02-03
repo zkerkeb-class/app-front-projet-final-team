@@ -2,7 +2,12 @@ import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useTheme } from '../hooks/useTheme';
-import { SunIcon, MoonIcon, UserIcon } from '@heroicons/react/24/outline';
+import {
+  SunIcon,
+  MoonIcon,
+  UserIcon,
+  MusicalNoteIcon,
+} from '@heroicons/react/24/outline';
 import { AudioProvider } from '@/contexts/AudioContext';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -133,7 +138,7 @@ function LayoutContent({ children }: LayoutProps) {
   const isAuthPage = router.pathname.startsWith('/auth/');
 
   useEffect(() => {
-    if (mainRef.current && !isAuthPage) {
+    if (mainRef.current && !isAuthPage && window.innerWidth >= 768) {
       gsap.to(mainRef.current, {
         marginLeft: isExpanded ? '256px' : '56px',
         duration: 0.3,
@@ -148,9 +153,13 @@ function LayoutContent({ children }: LayoutProps) {
         <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 flex flex-col">
           {!isAuthPage && (
             <header className="p-4 flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t('welcome')}
-              </h1>
+              <Link
+                href="/"
+                className="text-2xl font-bold text-gray-900 dark:text-white"
+              >
+                <span className="hidden md:inline">{t('welcome')}</span>
+                <MusicalNoteIcon className="h-8 w-8 md:hidden text-purple-600" />
+              </Link>
               <div className="flex-1 max-w-2xl mx-8">
                 <SearchBar />
               </div>
@@ -178,7 +187,7 @@ function LayoutContent({ children }: LayoutProps) {
             {!isAuthPage && <LibrarySidebar />}
             <main
               ref={mainRef}
-              className={`flex-1 overflow-y-auto ${isAuthPage ? 'p-0' : 'p-4'} min-h-[calc(100vh-64px)]`}
+              className={`flex-1 overflow-y-auto ${isAuthPage ? 'p-0' : 'p-4'} min-h-[calc(100vh-64px)] md:w-[calc(100%-256px)] w-full`}
               style={{
                 marginLeft: isAuthPage ? '0' : undefined,
                 height: 'calc(100vh - 64px)',

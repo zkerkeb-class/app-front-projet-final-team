@@ -40,12 +40,13 @@ export default function DynamicPlaylist({
 
   const handlePlayTrack = (track: Track) => {
     setCurrentTrack({
-      id: track.id.toString(),
+      id: track.id,
       title: track.title,
       artist: track.artist_name,
       src: track.audio_file_path.urls.mp3,
       coverUrl: track.image_url.urls.medium.webp,
-      albumId: track.album_id.toString(),
+      albumId: track.album_id,
+      duration: track.duration_seconds,
     });
     setIsPlaying(true);
   };

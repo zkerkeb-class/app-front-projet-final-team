@@ -1,70 +1,70 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import RecentlyPlayedService from '@/services/localStorage/recentlyPlayed.service';
-import TrackService from '@/services/api/track.service';
-
-// Default track definition
-const defaultTrack = {
-  id: '0',
-  src: '/the_line_top.m4a',
-  title: 'The Line',
-  artist: 'Twenty One Pilots',
-  coverUrl: '/fromzero.jpeg',
-  albumId: '0',
-};
-
-type FormattedTrack = typeof defaultTrack;
+import { Track } from '@/types/track';
 
 interface AudioContextType {
-  currentTrack: FormattedTrack;
+  currentTrack: Track | null;
   isPlaying: boolean;
-  isTrackChanging: boolean;
-  setCurrentTrack: (track: FormattedTrack) => void;
+  queue: Track[];
+  setQueue: (tracks: Track[]) => void;
+  playTrack: (track: Track) => void;
+  togglePlayPause: () => void;
+  setCurrentTrack: (track: Track | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   setIsTrackChanging: (isChanging: boolean) => void;
+  removeFromQueue: (trackId: number) => void;
+  clearQueue: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
-  const [currentTrack, setCurrentTrack] =
-    useState<FormattedTrack>(defaultTrack);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTrackChanging, setIsTrackChanging] = useState(false);
+  const [queue, setQueue] = useState<Track[]>([]);
 
-  const handleTrackChange = async (track: FormattedTrack) => {
-    try {
-      setCurrentTrack(track);
-      if (track.id !== '0') {
-        const trackData = await TrackService.getTrack(Number(track.id));
-        if (trackData) {
-          RecentlyPlayedService.addTrack(trackData);
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors du changement de piste:', error);
-    }
+  const playTrack = (track: Track) => {
+    setCurrentTrack(track);
+    setIsPlaying(true);
   };
 
-  const value: AudioContextType = {
-    currentTrack,
-    isPlaying,
-    isTrackChanging,
-    setCurrentTrack: handleTrackChange,
-    setIsPlaying,
-    setIsTrackChanging,
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const removeFromQueue = (trackId: number) => {
+    setQueue(queue.filter((track) => track.id !== trackId));
+  };
+
+  const clearQueue = () => {
+    setQueue([]);
   };
 
   return (
-    <AudioContext.Provider value={value}>{children}</AudioContext.Provider>
+    <AudioContext.Provider
+      value={{
+        currentTrack,
+        isPlaying,
+        queue,
+        setQueue,
+        playTrack,
+        togglePlayPause,
+        setCurrentTrack,
+        setIsPlaying,
+        setIsTrackChanging,
+        clearQueue,
+        removeFromQueue,
+      }}
+    >
+      {children}
+    </AudioContext.Provider>
   );
 }
 
 export function useAudio() {
   const context = useContext(AudioContext);
   if (context === undefined) {
-    throw new Error(
-      "useAudio doit être utilisé à l'intérieur d'un AudioProvider",
-    );
+    throw new Error('useAudio must be used within an AudioProvider');
   }
   return context;
 }

@@ -4,7 +4,20 @@ export type TArtist = {
   bio?: string;
   genre?: string;
   country?: string;
-  profile_picture_url?: string;
+  image_url?: {
+    urls: {
+      medium: {
+        webp: string;
+        jpeg: string;
+        png: string;
+      };
+      large: {
+        webp: string;
+        jpeg: string;
+        png: string;
+      };
+    };
+  };
   total_listeners: number;
   created_at: string;
   updated_at: string;

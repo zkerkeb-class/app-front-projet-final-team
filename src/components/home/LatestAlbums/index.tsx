@@ -3,22 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AlbumService from '@/services/api/album.service';
-
-export interface Album {
-  id: number;
-  title: string;
-  release_date: string;
-  genre: string;
-  primary_artist_id: number;
-  total_tracks: number;
-  image_url: {
-    urls: {
-      medium: {
-        webp: string;
-      };
-    };
-  };
-}
+import { Album } from '@/types/album';
 
 export default function LatestAlbums() {
   const { t } = useTranslation('common');
@@ -76,13 +61,13 @@ export default function LatestAlbums() {
   }, [loadMoreAlbums]);
 
   return (
-    <div className="py-8">
+    <div className="pb-4">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         {t('latestAlbums')}
       </h2>
       <div
         ref={containerRef}
-        className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar"
+        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar"
       >
         {albums.map((album) => (
           <Link

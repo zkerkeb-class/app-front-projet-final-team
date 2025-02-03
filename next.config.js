@@ -22,8 +22,11 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true, // Mode strict de React
-  swcMinify: true, // Utiliser SWC pour minifier
-  ...nextI18NextConfig, // Importer la configuration i18n depuis next-i18next.config.js
+  i18n: {
+    defaultLocale: 'fr',
+    locales: ['fr', 'en'],
+    localeDetection: false,
+  },
   images: {
     remotePatterns: [
       {

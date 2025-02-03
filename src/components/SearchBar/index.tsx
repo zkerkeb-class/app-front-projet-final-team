@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import debounce from 'lodash/debounce';
 import { SearchResult } from '@/types/search';
 import { gql, useLazyQuery } from '@apollo/client';
@@ -67,7 +67,9 @@ export default function SearchBar() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const [search, { loading: isLoading, error }] = useLazyQuery(SEARCH_QUERY, {
@@ -76,7 +78,7 @@ export default function SearchBar() {
       setResults(formattedResults);
     },
     onError: (error) => {
-      console.error('Erreur de recherche:', error);
+      console.error('Search error:', error);
       setResults([]);
     },
   });
@@ -181,6 +183,9 @@ export default function SearchBar() {
         !searchRef.current.contains(event.target as Node)
       ) {
         setShowResults(false);
+        if (window.innerWidth < 768) {
+          setIsMobileSearchActive(false);
+        }
       }
     };
 
@@ -190,58 +195,137 @@ export default function SearchBar() {
     };
   }, []);
 
+  const handleSearchFocus = () => {
+    setShowResults(true);
+    if (window.innerWidth < 768) {
+      setIsMobileSearchActive(true);
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  };
+
+  const handleMobileSearchClose = () => {
+    setIsMobileSearchActive(false);
+    setShowResults(false);
+    setQuery('');
+  };
+
   return (
-    <div ref={searchRef} className="relative w-full max-w-xl">
-      <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setShowResults(true)}
-          placeholder={t('search.placeholder')}
-          className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 
-                   text-gray-900 dark:text-white placeholder-gray-500 
-                   focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-        {query.trim() !== '' && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center">
+    <>
+      <div className="md:hidden">
+        <button
+          onClick={handleSearchFocus}
+          className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+        >
+          <MagnifyingGlassIcon className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div
+        className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 md:hidden ${
+          isMobileSearchActive ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="p-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleMobileSearchClose}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+            </button>
+            <div ref={searchRef} className="flex-1">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t('search.placeholder')}
+                  className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 
+                           text-gray-900 dark:text-white placeholder-gray-500 
+                           focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {showResults && (query.trim() !== '' || isLoading) && (
+            <div className="mt-4 bg-white dark:bg-gray-900 overflow-y-auto max-h-[calc(100vh-120px)]">
+              {error && (
+                <div className="p-3 text-red-500 text-sm">
+                  {t('search.error')}
+                </div>
+              )}
+              {isLoading ? (
+                <SearchSkeleton />
+              ) : results.length > 0 ? (
+                Object.entries(groupedResults).map(([type, items]) => (
+                  <div key={type} className="py-2">
+                    <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                      {t(`search.${type}s`)}
+                    </div>
+                    {items.map(renderSearchResult)}
+                  </div>
+                ))
+              ) : query.trim() !== '' && !isLoading ? (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  {t('search.noResults')}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="hidden md:block relative w-full max-w-xl">
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setShowResults(true)}
+            placeholder={t('search.placeholder')}
+            className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 
+                     text-gray-900 dark:text-white placeholder-gray-500 
+                     focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+
+        {showResults && (query.trim() !== '' || isLoading) && (
+          <div
+            className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
+                        max-h-96 overflow-y-auto z-50"
+          >
+            {error && (
+              <div className="p-3 text-red-500 text-sm">
+                {t('search.error')}
+              </div>
+            )}
             {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent" />
+              <SearchSkeleton />
+            ) : results.length > 0 ? (
+              Object.entries(groupedResults).map(([type, items]) => (
+                <div key={type} className="py-2">
+                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
+                    {t(`search.${type}s`)}
+                  </div>
+                  {items.map(renderSearchResult)}
+                </div>
+              ))
             ) : (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {t('search.pressEnter')}
-              </span>
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                {t('search.noResults')}
+              </div>
             )}
           </div>
         )}
       </div>
-
-      {showResults && (query.trim() !== '' || isLoading) && (
-        <div
-          className="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
-                      max-h-96 overflow-y-auto z-50"
-        >
-          {error && (
-            <div className="p-3 text-red-500 text-sm">{t('search.error')}</div>
-          )}
-          {isLoading ? (
-            <SearchSkeleton />
-          ) : results.length > 0 ? (
-            Object.entries(groupedResults).map(([type, items]) => (
-              <div key={type} className="py-2">
-                <div className="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-800">
-                  {t(`search.${type}s`)}
-                </div>
-                {items.map(renderSearchResult)}
-              </div>
-            ))
-          ) : (
-            <SearchSkeleton />
-          )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

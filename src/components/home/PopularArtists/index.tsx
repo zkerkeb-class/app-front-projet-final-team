@@ -1,6 +1,7 @@
 import { useTranslation } from 'next-i18next';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import ArtistService from '../../../services/api/artist.service';
 
 /**
@@ -78,17 +79,21 @@ export default function PopularArtists() {
   }, [loadMoreArtists]);
 
   return (
-    <div className="py-8">
+    <div className="pb-4">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         {t('home.popularArtists')}
       </h2>
       <div
         ref={containerRef}
-        className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar"
+        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar"
       >
         {artists.map((artist) => (
-          <div key={artist.id} className="snap-start flex-none w-48">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105">
+          <Link
+            href={`/artist/${artist.id}`}
+            key={artist.id}
+            className="snap-start flex-none w-48"
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform ">
               <div className="relative aspect-square">
                 <Image
                   src={artist.image_url.urls.medium.webp}
@@ -116,7 +121,7 @@ export default function PopularArtists() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
         {loading && (
           <div className="flex-none w-48 flex items-center justify-center">

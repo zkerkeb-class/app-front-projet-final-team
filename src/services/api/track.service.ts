@@ -1,5 +1,7 @@
-import { Track } from '@/pages/playlists';
+import { Track } from '@/types/audio';
 import toast from 'react-hot-toast';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface TrackResponse {
   data: Track[];
@@ -20,30 +22,114 @@ class ApiError extends Error {
   }
 }
 
-const TrackService = {
+/**
+ * Service for managing tracks (CRUD operations)
+ */
+class TrackService {
+  private static getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }
+
   /**
-   * Get track by id
-   * @param {string} id - Track id
-   * @returns {Promise<Track>} Promise containing track data
+   * Get a track by its ID
    */
-  async getTrack(id: string | number): Promise<Track> {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/tracks/${id}`,
-    );
-    return await response.json();
-  },
+  static async getTrack(id: number): Promise<Track> {
+    const response = await fetch(`${API_URL}/tracks/${id}`, {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Erreur lors de la récupération de la piste',
+        response.status,
+      );
+    }
+    return response.json();
+  }
+
+  /**
+   * Create a new track
+   */
+  static async createTrack(formData: FormData): Promise<Track> {
+    const response = await fetch(`${API_URL}/tracks`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Erreur lors de la création de la piste',
+        response.status,
+      );
+    }
+    return response.json();
+  }
+
+  /**
+   * Update a track
+   */
+  static async updateTrack(id: number, formData: FormData): Promise<Track> {
+    const response = await fetch(`${API_URL}/tracks/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Erreur lors de la mise à jour de la piste',
+        response.status,
+      );
+    }
+    return response.json();
+  }
+
+  /**
+   * Delete a track
+   */
+  static async deleteTrack(id: number): Promise<void> {
+    const response = await fetch(`${API_URL}/tracks/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Erreur lors de la suppression de la piste',
+        response.status,
+      );
+    }
+  }
+
+  /**
+   * Get all tracks for a user
+   */
+  static async getUserTracks(userId: string): Promise<Track[]> {
+    const response = await fetch(`${API_URL}/tracks/user/${userId}`, {
+      headers: this.getHeaders(),
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Erreur lors de la récupération des pistes',
+        response.status,
+      );
+    }
+    return response.json();
+  }
 
   /**
    * Get recently played tracks
    * @param {number} limit - Number of tracks to fetch
    * @returns {Promise<TrackResponse>} Promise containing tracks data
    */
-  async getRecentlyPlayed(limit: number = 20): Promise<TrackResponse> {
+  static async getRecentlyPlayed(limit: number = 20): Promise<TrackResponse> {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tracks/recently-played?limit=${limit}`,
+        `${API_URL}/tracks/recently-played?limit=${limit}`,
+        {
+          headers: this.getHeaders(),
+        },
       );
-
       if (!response.ok) {
         throw new ApiError(
           'Erreur lors de la récupération des titres récents',
@@ -51,35 +137,31 @@ const TrackService = {
           await response.json(),
         );
       }
-
-      return await response.json();
+      return response.json();
     } catch (error) {
       if (error instanceof ApiError) {
         toast.error(error.message);
         throw error;
       }
-
       if (error instanceof TypeError) {
         toast.error('Erreur de connexion au serveur');
         throw new ApiError('Erreur de connexion au serveur');
       }
-
       toast.error('Une erreur inattendue est survenue');
       throw new ApiError('Une erreur inattendue est survenue');
     }
-  },
+  }
 
   /**
    * Get most played tracks
    * @param {number} limit - Number of tracks to fetch
    * @returns {Promise<TrackResponse>} Promise containing tracks data
    */
-  async getMostPlayed(limit: number = 20): Promise<TrackResponse> {
+  static async getMostPlayed(limit: number = 20): Promise<TrackResponse> {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tracks/top?limit=${limit}`,
-      );
-
+      const response = await fetch(`${API_URL}/tracks/top?limit=${limit}`, {
+        headers: this.getHeaders(),
+      });
       if (!response.ok) {
         throw new ApiError(
           'Erreur lors de la récupération des titres populaires',
@@ -87,35 +169,31 @@ const TrackService = {
           await response.json(),
         );
       }
-
-      return await response.json();
+      return response.json();
     } catch (error) {
       if (error instanceof ApiError) {
         toast.error(error.message);
         throw error;
       }
-
       if (error instanceof TypeError) {
         toast.error('Erreur de connexion au serveur');
         throw new ApiError('Erreur de connexion au serveur');
       }
-
       toast.error('Une erreur inattendue est survenue');
       throw new ApiError('Une erreur inattendue est survenue');
     }
-  },
+  }
 
   /**
    * Get track details
    * @param {string} trackId - Track ID
    * @returns {Promise<Track>} Promise containing track details
    */
-  async getTrackDetails(trackId: string): Promise<Track> {
+  static async getTrackDetails(trackId: string): Promise<Track> {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tracks/${trackId}`,
-      );
-
+      const response = await fetch(`${API_URL}/tracks/${trackId}`, {
+        headers: this.getHeaders(),
+      });
       if (!response.ok) {
         throw new ApiError(
           'Erreur lors de la récupération des détails du titre',
@@ -123,38 +201,32 @@ const TrackService = {
           await response.json(),
         );
       }
-
-      return await response.json();
+      return response.json();
     } catch (error) {
       if (error instanceof ApiError) {
         toast.error(error.message);
         throw error;
       }
-
       if (error instanceof TypeError) {
         toast.error('Erreur de connexion au serveur');
         throw new ApiError('Erreur de connexion au serveur');
       }
-
       toast.error('Une erreur inattendue est survenue');
       throw new ApiError('Une erreur inattendue est survenue');
     }
-  },
+  }
 
   /**
    * Increment track play count
    * @param {string} trackId - Track ID
    * @returns {Promise<void>}
    */
-  async incrementPlayCount(trackId: string): Promise<void> {
+  static async incrementPlayCount(trackId: string): Promise<void> {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tracks/${trackId}/play`,
-        {
-          method: 'POST',
-        },
-      );
-
+      const response = await fetch(`${API_URL}/tracks/${trackId}/play`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      });
       if (!response.ok) {
         throw new ApiError(
           "Erreur lors de l'incrémentation du nombre d'écoutes",
@@ -167,16 +239,14 @@ const TrackService = {
         toast.error(error.message);
         throw error;
       }
-
       if (error instanceof TypeError) {
         toast.error('Erreur de connexion au serveur');
         throw new ApiError('Erreur de connexion au serveur');
       }
-
       toast.error('Une erreur inattendue est survenue');
       throw new ApiError('Une erreur inattendue est survenue');
     }
-  },
+  }
 
   /**
    * Search tracks
@@ -184,15 +254,17 @@ const TrackService = {
    * @param {number} limit - Number of results to return
    * @returns {Promise<TrackResponse>} Promise containing search results
    */
-  async searchTracks(
+  static async searchTracks(
     query: string,
     limit: number = 20,
   ): Promise<TrackResponse> {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tracks/search?q=${query}&limit=${limit}`,
+        `${API_URL}/tracks/search?q=${query}&limit=${limit}`,
+        {
+          headers: this.getHeaders(),
+        },
       );
-
       if (!response.ok) {
         throw new ApiError(
           'Erreur lors de la recherche de titres',
@@ -200,23 +272,20 @@ const TrackService = {
           await response.json(),
         );
       }
-
-      return await response.json();
+      return response.json();
     } catch (error) {
       if (error instanceof ApiError) {
         toast.error(error.message);
         throw error;
       }
-
       if (error instanceof TypeError) {
         toast.error('Erreur de connexion au serveur');
         throw new ApiError('Erreur de connexion au serveur');
       }
-
       toast.error('Une erreur inattendue est survenue');
       throw new ApiError('Une erreur inattendue est survenue');
     }
-  },
-};
+  }
+}
 
 export default TrackService;

@@ -7,6 +7,9 @@ import {
   UserIcon,
 } from '@heroicons/react/24/solid';
 import { useSidebar } from '@/contexts/SidebarContext';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 export default function LibrarySidebar() {
   const { t } = useTranslation('common');
@@ -42,7 +45,7 @@ export default function LibrarySidebar() {
     <div
       ref={sidebarRef}
       className="fixed left-4 top-18 h-[calc(100vh-12rem)] text-gray-900 dark:text-white shadow-lg dark:bg-gray-800 transition-colors duration-300
-      rounded-2xl overflow-hidden z-1"
+      rounded-2xl overflow-hidden z-1 hidden md:block"
     >
       <nav className="p-2 space-y-2">
         <button
@@ -60,23 +63,37 @@ export default function LibrarySidebar() {
           </span>
         </button>
 
-        <div className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+        <Link
+          href="/playlists"
+          className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+        >
           <span className="text-purple-600 shrink-0">
             <MusicalNoteIcon className="h-5 w-5" />
           </span>
           <span ref={setTextRef(1)} className="whitespace-nowrap">
             {t('library.playlists')}
           </span>
-        </div>
+        </Link>
+        <Link
+          href="/artist"
+          className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+        >
+          <span className="text-purple-600 shrink-0">
+            <UserIcon className="h-5 w-5" />
+          </span>
+          <span ref={setTextRef(2)} className="whitespace-nowrap">
+            {t('library.artist')}
+          </span>
+        </Link>
 
-        <div className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+        {/* <div className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
           <span className="text-purple-600 shrink-0">
             <UserIcon className="h-5 w-5" />
           </span>
           <span ref={setTextRef(2)} className="whitespace-nowrap">
             {t('library.artists')}
           </span>
-        </div>
+        </div> */}
       </nav>
     </div>
   );

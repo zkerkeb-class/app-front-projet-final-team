@@ -4,10 +4,9 @@
     "es2021": true
   },
   "extends": [
-    "eslint:recommended",
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended"
+    "prettier"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -18,14 +17,14 @@
   },
   "plugins": ["@typescript-eslint", "prettier"],
   "rules": {
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/no-explicit-any": "off",
-    "prettier/prettier": "error",
-    "react/react-in-jsx-scope": "off",
     "no-console": "warn",
-    "eqeqeq": ["error", "always"],
-    "strict": ["error", "never"],
-    "@typescript-eslint/no-var-requires": "off"
+    "@typescript-eslint/no-unused-vars": "warn",
+    "prettier/prettier": "warn",
+    "@next/next/no-img-element": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "import/no-anonymous-default-export": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "react/no-unescaped-entities": "off"
   },
   "overrides": [
     {

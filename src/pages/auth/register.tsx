@@ -9,6 +9,18 @@ import { useRouter } from 'next/router';
 import { useTheme } from '@/hooks/useTheme';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
+type UserType = 'standard' | 'artist';
+
+type FormDataType = {
+  email: string;
+  password: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  user_type: UserType;
+  genres: string[];
+};
+
 export async function getStaticProps({ locale }: { locale: string }) {
   return {
     props: {
@@ -23,13 +35,14 @@ export default function Register() {
   const router = useRouter();
   const { isDarkMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataType>({
     email: '',
     password: '',
     username: '',
     first_name: '',
     last_name: '',
-    user_type: 'standard' as const,
+    user_type: 'standard',
+    genres: [],
   });
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -40,10 +53,20 @@ export default function Register() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === 'genres' && e.target instanceof HTMLSelectElement) {
+      const selectedOptions = Array.from(e.target.selectedOptions).map(
+        (option) => option.value,
+      );
+      setFormData((prev) => ({
+        ...prev,
+        [name]: selectedOptions,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +85,13 @@ export default function Register() {
     try {
       const formDataToSend = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        formDataToSend.append(key, value);
+        if (key === 'genres') {
+          (value as string[]).forEach((genre) => {
+            formDataToSend.append('genres', genre);
+          });
+        } else {
+          formDataToSend.append(key, value as string);
+        }
       });
       if (profilePicture) {
         formDataToSend.append('profile_picture', profilePicture);
@@ -219,6 +248,41 @@ export default function Register() {
                   disabled={isLoading}
                 />
               </div>
+
+              {formData.user_type === 'artist' && (
+                <div>
+                  <label
+                    htmlFor="genre"
+                    className="block text-sm font-medium text-gray-200 mb-2"
+                  >
+                    {t('auth.genre')}
+                  </label>
+                  <select
+                    id="genres"
+                    name="genres"
+                    value={formData.genres}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-purple-500"
+                    disabled={isLoading}
+                    multiple
+                    size={5}
+                  >
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="hip_hop">Hip Hop</option>
+                    <option value="jazz">Jazz</option>
+                    <option value="classical">Classical</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="rnb">R&B</option>
+                    <option value="country">Country</option>
+                    <option value="blues">Blues</option>
+                    <option value="reggae">Reggae</option>
+                  </select>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {t('auth.holdCtrlToSelect')}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label

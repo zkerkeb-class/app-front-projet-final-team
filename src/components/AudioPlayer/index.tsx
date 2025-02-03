@@ -9,11 +9,13 @@ import {
   ArrowsRightLeftIcon,
   BackwardIcon,
   ForwardIcon,
+  QueueListIcon,
 } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import AudioVisualizer from './components/AudioVisualizer';
 import { useAudio } from '@/contexts/AudioContext';
 import formatTime from '@/utils/formatTime';
+import QueuePanel from '../QueuePanel';
 
 /**
  * Main audio player component
@@ -21,7 +23,14 @@ import formatTime from '@/utils/formatTime';
  */
 export default function AudioPlayer() {
   // Audio context
-  const { currentTrack, isPlaying, setIsPlaying } = useAudio();
+  const {
+    currentTrack,
+    isPlaying,
+    setIsPlaying,
+    queue,
+    setCurrentTrack,
+    removeFromQueue,
+  } = useAudio();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -43,41 +52,79 @@ export default function AudioPlayer() {
   const progressBarRef = useRef<HTMLDivElement>(null);
   const volumeBarRef = useRef<HTMLDivElement>(null);
 
+  // Queue state
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+
+  // Effet pour gérer le changement de piste
   useEffect(() => {
-    if (audioRef.current) {
-      // Arrêter la lecture actuelle
-      audioRef.current.pause();
+    const resetAudioState = () => {
+      if (audioRef.current) {
+        // Arrêter la lecture actuelle
+        audioRef.current.pause();
 
-      // Réinitialiser l'état
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
-      setDuration(0);
+        // Réinitialiser l'état
+        audioRef.current.currentTime = 0;
+        setCurrentTime(0);
+        setDuration(0);
 
-      // Mettre à jour la source
-      audioRef.current.src = currentTrack.src;
+        // Mettre à jour la source
+        audioRef.current.src = currentTrack?.src || '';
 
-      // Charger le nouveau média
-      const loadPromise = audioRef.current.load();
+        // Charger le nouveau média
+        audioRef.current.load();
 
-      // Gérer la lecture après le chargement
-      if (isPlaying) {
-        Promise.resolve(loadPromise).then(() => {
-          const playPromise = audioRef.current?.play();
-          if (playPromise) {
-            playPromise.catch((error) => {
-              console.error('Erreur lors de la lecture :', error);
-              setIsPlaying(false);
-            });
-          }
-        });
+        // Gérer la lecture après le chargement
+        audioRef.current.addEventListener(
+          'loadeddata',
+          () => {
+            if (isPlaying) {
+              const playPromise = audioRef.current?.play();
+              if (playPromise) {
+                playPromise.catch((error) => {
+                  console.error('Erreur lors de la lecture :', error);
+                  setIsPlaying(false);
+                });
+              }
+            }
+          },
+          { once: true },
+        );
+      }
+    };
+
+    resetAudioState();
+
+    // Cleanup function
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('loadeddata', () => {});
+      }
+    };
+  }, [currentTrack?.src]); // Dépend uniquement du changement de source
+
+  // Effet séparé pour gérer play/pause
+  useEffect(() => {
+    if (audioRef.current && currentTrack?.src === audioRef.current.src) {
+      // Vérifier que c'est la même piste
+      if (isPlaying && audioRef.current.paused) {
+        const playPromise = audioRef.current.play();
+        if (playPromise) {
+          playPromise.catch((error) => {
+            console.error('Erreur lors de la lecture :', error);
+            setIsPlaying(false);
+          });
+        }
+      } else if (!isPlaying && !audioRef.current.paused) {
+        audioRef.current.pause();
       }
     }
-  }, [currentTrack.src, isPlaying]);
+  }, [isPlaying, currentTrack?.src]);
 
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
@@ -86,8 +133,8 @@ export default function AudioPlayer() {
             setIsPlaying(false);
           });
         }
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -199,279 +246,74 @@ export default function AudioPlayer() {
     [tempProgress],
   );
 
+  const handleTrackEnd = () => {
+    if (queue.length > 0) {
+      // Jouer la prochaine piste de la file d'attente
+      const nextTrack = queue[0];
+      setCurrentTrack(nextTrack);
+      removeFromQueue(nextTrack.id);
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
   if (!currentTrack) return null;
 
   return (
-    <div
-      onClick={() => window.innerWidth < 768 && setIsFullscreen(!isFullscreen)}
-      className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 ${
-        isFullscreen ? 'h-screen' : 'h-auto md:h-24'
-      }`}
-    >
+    <>
       <div
-        className={`max-w-7xl mx-auto ${isFullscreen ? 'h-full flex flex-col justify-center items-center' : 'flex flex-row items-center justify-between'} md:space-y-0`}
+        onClick={() =>
+          window.innerWidth < 768 && setIsFullscreen(!isFullscreen)
+        }
+        className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 ${
+          isFullscreen ? 'h-screen' : 'h-auto md:h-24'
+        }`}
       >
-        {/* Cover and infos */}
         <div
-          className={`flex ${isFullscreen ? 'flex-col items-center mb-8' : 'items-center space-x-4'} w-full md:w-auto`}
+          className={`max-w-7xl mx-auto ${isFullscreen ? 'h-full flex flex-col justify-center items-center' : 'flex flex-row items-center justify-between'} md:space-y-0`}
         >
-          <Image
-            src={currentTrack.coverUrl}
-            alt={currentTrack.title}
-            className={`rounded-lg object-cover ${isFullscreen ? 'w-64 h-64 mb-4' : 'w-16 h-16'}`}
-            width={isFullscreen ? 256 : 64}
-            height={isFullscreen ? 256 : 64}
-            placeholder="blur"
-            blurDataURL={currentTrack.coverUrl}
-          />
-          <div className={`min-w-0 ${isFullscreen ? 'text-center' : ''}`}>
-            <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-              {currentTrack.title}
-            </h3>
-            <p
-              className={`text-sm text-gray-600 dark:text-gray-400 truncate ${isFullscreen ? 'block' : 'hidden md:block'}`}
-            >
-              {currentTrack.artist}
-            </p>
-          </div>
-        </div>
-
-        {isFullscreen ? (
-          <div className="w-full max-w-xl space-y-6">
-            {/* Button to reduce the player */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsFullscreen(false);
-              }}
-              className="absolute top-4 right-4 p-2 text-white hover:text-purple-600"
-            >
-              <ArrowsPointingOutIcon className="w-6 h-6 rotate-180" />
-            </button>
-
-            {/* Progress bar in fullscreen mode */}
-            <div className="flex items-center space-x-2 w-full">
-              <span className="text-xs text-white">
-                {formatTime(currentTime)}
-              </span>
-              <div
-                ref={progressBarRef}
-                onClick={(e) =>
-                  handleBarClick(e, progressBarRef, duration, (value) => {
-                    if (audioRef.current) {
-                      audioRef.current.currentTime = value;
-                      setCurrentTime(value);
-                    }
-                  })
-                }
-                onMouseDown={(e) =>
-                  handleBarMouseDown(
-                    e,
-                    progressBarRef,
-                    duration,
-                    (value) => {
-                      if (audioRef.current) {
-                        audioRef.current.currentTime = value;
-                        setCurrentTime(value);
-                      }
-                    },
-                    true,
-                  )
-                }
-                className="relative h-1 flex-grow bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
+          {/* Cover and infos */}
+          <div
+            className={`flex ${isFullscreen ? 'flex-col items-center mb-8' : 'items-center space-x-4'} w-full md:w-auto`}
+          >
+            <Image
+              src={currentTrack.coverUrl}
+              alt={currentTrack.title}
+              className={`rounded-lg object-cover ${isFullscreen ? 'w-64 h-64 mb-4' : 'w-16 h-16'}`}
+              width={isFullscreen ? 256 : 64}
+              height={isFullscreen ? 256 : 64}
+              placeholder="blur"
+              blurDataURL={currentTrack.coverUrl}
+            />
+            <div className={`min-w-0 ${isFullscreen ? 'text-center' : ''}`}>
+              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                {currentTrack.title}
+              </h3>
+              <p
+                className={`text-sm text-gray-600 dark:text-gray-400 truncate ${isFullscreen ? 'block' : 'hidden md:block'}`}
               >
-                <div
-                  className="absolute h-full bg-purple-600 rounded-full"
-                  style={{
-                    width: `${((tempProgress ?? currentTime) / duration) * 100}%`,
-                  }}
-                />
-                <div
-                  className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{
-                    left: `${((tempProgress ?? currentTime) / duration) * 100}%`,
-                    transform: 'translateX(-50%)',
-                  }}
-                />
-              </div>
-              <span className="text-xs text-white">{formatTime(duration)}</span>
-            </div>
-
-            {/* Controls in fullscreen mode */}
-            <div className="flex justify-center items-center space-x-8">
-              <button
-                onClick={() => setIsShuffle(!isShuffle)}
-                className={`p-2 rounded-full ${
-                  isShuffle ? 'text-purple-500' : 'text-white'
-                } hover:text-purple-500`}
-              >
-                <ArrowsRightLeftIcon className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={handlePrevious}
-                className="p-2 text-white hover:text-purple-500"
-              >
-                <BackwardIcon className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={togglePlay}
-                className="p-4 bg-purple-600 rounded-full text-white hover:bg-purple-700"
-              >
-                {isPlaying ? (
-                  <PauseIcon className="w-8 h-8" />
-                ) : (
-                  <PlayIcon className="w-8 h-8" />
-                )}
-              </button>
-
-              <button
-                onClick={handleNext}
-                className="p-2 text-white hover:text-purple-500"
-              >
-                <ForwardIcon className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={() => setIsRepeat(!isRepeat)}
-                className={`p-2 rounded-full ${
-                  isRepeat ? 'text-purple-500' : 'text-white'
-                } hover:text-purple-500`}
-              >
-                <ArrowPathRoundedSquareIcon className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Volume in fullscreen mode */}
-            <div className="flex justify-center items-center space-x-4">
-              <button
-                onClick={toggleMute}
-                className="text-white hover:text-purple-500"
-              >
-                {isMuted ? (
-                  <SpeakerXMarkIcon className="w-6 h-6" />
-                ) : (
-                  <SpeakerWaveIcon className="w-6 h-6" />
-                )}
-              </button>
-              <div
-                ref={volumeBarRef}
-                onClick={(e) =>
-                  handleBarClick(e, volumeBarRef, 1, (value) => {
-                    setVolume(value);
-                    if (audioRef.current) {
-                      audioRef.current.volume = value;
-                    }
-                  })
-                }
-                onMouseDown={(e) =>
-                  handleBarMouseDown(e, volumeBarRef, 1, (value) => {
-                    setVolume(value);
-                    if (audioRef.current) {
-                      audioRef.current.volume = value;
-                    }
-                  })
-                }
-                className="relative w-24 h-1 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
-              >
-                <div
-                  className="absolute h-full bg-purple-600 rounded-full"
-                  style={{ width: `${volume * 100}%` }}
-                />
-                <div
-                  className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{
-                    left: `${volume * 100}%`,
-                    transform: 'translateX(-50%)',
-                  }}
-                />
-              </div>
+                {currentTrack.artist}
+              </p>
             </div>
           </div>
-        ) : (
-          <>
-            {/* Mobile and normal desktop version */}
-            <div className="flex md:hidden items-center space-x-3">
+
+          {isFullscreen ? (
+            <div className="w-full max-w-xl space-y-6">
+              {/* Button to reduce the player */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handlePrevious();
+                  setIsFullscreen(false);
                 }}
-                className="hidden md:block p-2 text-gray-600 dark:text-gray-400"
+                className="absolute top-4 right-4 p-2 text-white hover:text-purple-600"
               >
-                <BackwardIcon className="w-5 h-5" />
+                <ArrowsPointingOutIcon className="w-6 h-6 rotate-180" />
               </button>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlay();
-                }}
-                className="p-3 text-gray-900 dark:text-white rounded-full md:bg-purple-600 md:text-white md:hover:bg-purple-700"
-              >
-                {isPlaying ? (
-                  <PauseIcon className="w-6 h-6" />
-                ) : (
-                  <PlayIcon className="w-6 h-6" />
-                )}
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNext();
-                }}
-                className="p-2 text-gray-600 dark:text-gray-400"
-              >
-                <ForwardIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="hidden md:flex flex-col items-center space-y-2 w-full md:w-auto">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setIsShuffle(!isShuffle)}
-                  className={`p-2 rounded-full ${isShuffle ? 'text-purple-600' : 'text-gray-600 dark:text-gray-400'}`}
-                >
-                  <ArrowsRightLeftIcon className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={handlePrevious}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600"
-                >
-                  <BackwardIcon className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={togglePlay}
-                  className="p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700"
-                >
-                  {isPlaying ? (
-                    <PauseIcon className="w-6 h-6" />
-                  ) : (
-                    <PlayIcon className="w-6 h-6" />
-                  )}
-                </button>
-
-                <button
-                  onClick={handleNext}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600"
-                >
-                  <ForwardIcon className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={() => setIsRepeat(!isRepeat)}
-                  className={`p-2 rounded-full ${isRepeat ? 'text-purple-600' : 'text-gray-600 dark:text-gray-400'}`}
-                >
-                  <ArrowPathRoundedSquareIcon className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Progress bar - desktop only */}
+              {/* Progress bar in fullscreen mode */}
               <div className="flex items-center space-x-2 w-full">
-                <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="text-xs text-white">
                   {formatTime(currentTime)}
                 </span>
                 <div
@@ -514,77 +356,308 @@ export default function AudioPlayer() {
                     }}
                   />
                 </div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="text-xs text-white">
                   {formatTime(duration)}
                 </span>
               </div>
-            </div>
 
-            {/* Secondary controls - desktop only */}
-            <div className="flex items-center space-x-2">
-              <button onClick={toggleMute}>
-                {isMuted ? (
-                  <SpeakerXMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                ) : (
-                  <SpeakerWaveIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                )}
-              </button>
-              <div
-                ref={volumeBarRef}
-                onClick={(e) =>
-                  handleBarClick(e, volumeBarRef, 1, (value) => {
-                    setVolume(value);
-                    if (audioRef.current) {
-                      audioRef.current.volume = value;
-                    }
-                  })
-                }
-                onMouseDown={(e) =>
-                  handleBarMouseDown(e, volumeBarRef, 1, (value) => {
-                    setVolume(value);
-                    if (audioRef.current) {
-                      audioRef.current.volume = value;
-                    }
-                  })
-                }
-                className="relative w-24 h-1 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
-              >
-                <div
-                  className="absolute h-full bg-purple-600 rounded-full"
-                  style={{ width: `${volume * 100}%` }}
-                />
-                <div
-                  className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{
-                    left: `${volume * 100}%`,
-                    transform: 'translateX(-50%)',
-                  }}
-                />
+              {/* Controls in fullscreen mode */}
+              <div className="flex justify-center items-center space-x-8">
+                <button
+                  onClick={() => setIsShuffle(!isShuffle)}
+                  className={`p-2 rounded-full ${
+                    isShuffle ? 'text-purple-500' : 'text-white'
+                  } hover:text-purple-500`}
+                >
+                  <ArrowsRightLeftIcon className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={handlePrevious}
+                  className="p-2 text-white hover:text-purple-500"
+                >
+                  <BackwardIcon className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={togglePlay}
+                  className="p-4 bg-purple-600 rounded-full text-white hover:bg-purple-700"
+                >
+                  {isPlaying ? (
+                    <PauseIcon className="w-8 h-8" />
+                  ) : (
+                    <PlayIcon className="w-8 h-8" />
+                  )}
+                </button>
+
+                <button
+                  onClick={handleNext}
+                  className="p-2 text-white hover:text-purple-500"
+                >
+                  <ForwardIcon className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={() => setIsRepeat(!isRepeat)}
+                  className={`p-2 rounded-full ${
+                    isRepeat ? 'text-purple-500' : 'text-white'
+                  } hover:text-purple-500`}
+                >
+                  <ArrowPathRoundedSquareIcon className="w-6 h-6" />
+                </button>
               </div>
-              <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="p-2 text-gray-600 dark:text-gray-400"
-              >
-                <ArrowsPointingOutIcon className="w-5 h-5" />
-              </button>
+
+              {/* Volume in fullscreen mode */}
+              <div className="flex justify-center items-center space-x-4">
+                <button
+                  onClick={toggleMute}
+                  className="text-white hover:text-purple-500"
+                >
+                  {isMuted ? (
+                    <SpeakerXMarkIcon className="w-6 h-6" />
+                  ) : (
+                    <SpeakerWaveIcon className="w-6 h-6" />
+                  )}
+                </button>
+                <div
+                  ref={volumeBarRef}
+                  onClick={(e) =>
+                    handleBarClick(e, volumeBarRef, 1, (value) => {
+                      setVolume(value);
+                      if (audioRef.current) {
+                        audioRef.current.volume = value;
+                      }
+                    })
+                  }
+                  onMouseDown={(e) =>
+                    handleBarMouseDown(e, volumeBarRef, 1, (value) => {
+                      setVolume(value);
+                      if (audioRef.current) {
+                        audioRef.current.volume = value;
+                      }
+                    })
+                  }
+                  className="relative w-24 h-1 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
+                >
+                  <div
+                    className="absolute h-full bg-purple-600 rounded-full"
+                    style={{ width: `${volume * 100}%` }}
+                  />
+                  <div
+                    className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      left: `${volume * 100}%`,
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              {/* Mobile and normal desktop version */}
+              <div className="flex md:hidden items-center space-x-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrevious();
+                  }}
+                  className="hidden md:block p-2 text-gray-600 dark:text-gray-400"
+                >
+                  <BackwardIcon className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlay();
+                  }}
+                  className="p-3 text-gray-900 dark:text-white rounded-full md:bg-purple-600 md:text-white md:hover:bg-purple-700"
+                >
+                  {isPlaying ? (
+                    <PauseIcon className="w-6 h-6" />
+                  ) : (
+                    <PlayIcon className="w-6 h-6" />
+                  )}
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                  className="p-2 text-gray-600 dark:text-gray-400"
+                >
+                  <ForwardIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="hidden md:flex flex-col items-center space-y-2 w-full md:w-auto">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setIsShuffle(!isShuffle)}
+                    className={`p-2 rounded-full ${isShuffle ? 'text-purple-600' : 'text-gray-600 dark:text-gray-400'}`}
+                  >
+                    <ArrowsRightLeftIcon className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={handlePrevious}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600"
+                  >
+                    <BackwardIcon className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={togglePlay}
+                    className="p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700"
+                  >
+                    {isPlaying ? (
+                      <PauseIcon className="w-6 h-6" />
+                    ) : (
+                      <PlayIcon className="w-6 h-6" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleNext}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600"
+                  >
+                    <ForwardIcon className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={() => setIsRepeat(!isRepeat)}
+                    className={`p-2 rounded-full ${isRepeat ? 'text-purple-600' : 'text-gray-600 dark:text-gray-400'}`}
+                  >
+                    <ArrowPathRoundedSquareIcon className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Progress bar - desktop only */}
+                <div className="flex items-center space-x-2 w-full">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {formatTime(currentTime)}
+                  </span>
+                  <div
+                    ref={progressBarRef}
+                    onClick={(e) =>
+                      handleBarClick(e, progressBarRef, duration, (value) => {
+                        if (audioRef.current) {
+                          audioRef.current.currentTime = value;
+                          setCurrentTime(value);
+                        }
+                      })
+                    }
+                    onMouseDown={(e) =>
+                      handleBarMouseDown(
+                        e,
+                        progressBarRef,
+                        duration,
+                        (value) => {
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = value;
+                            setCurrentTime(value);
+                          }
+                        },
+                        true,
+                      )
+                    }
+                    className="relative h-1 flex-grow bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
+                  >
+                    <div
+                      className="absolute h-full bg-purple-600 rounded-full"
+                      style={{
+                        width: `${((tempProgress ?? currentTime) / duration) * 100}%`,
+                      }}
+                    />
+                    <div
+                      className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{
+                        left: `${((tempProgress ?? currentTime) / duration) * 100}%`,
+                        transform: 'translateX(-50%)',
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {formatTime(duration)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Secondary controls - desktop only */}
+              <div className="flex items-center space-x-2">
+                <button onClick={toggleMute}>
+                  {isMuted ? (
+                    <SpeakerXMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  ) : (
+                    <SpeakerWaveIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  )}
+                </button>
+                <div
+                  ref={volumeBarRef}
+                  onClick={(e) =>
+                    handleBarClick(e, volumeBarRef, 1, (value) => {
+                      setVolume(value);
+                      if (audioRef.current) {
+                        audioRef.current.volume = value;
+                      }
+                    })
+                  }
+                  onMouseDown={(e) =>
+                    handleBarMouseDown(e, volumeBarRef, 1, (value) => {
+                      setVolume(value);
+                      if (audioRef.current) {
+                        audioRef.current.volume = value;
+                      }
+                    })
+                  }
+                  className="relative w-24 h-1 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer group"
+                >
+                  <div
+                    className="absolute h-full bg-purple-600 rounded-full"
+                    style={{ width: `${volume * 100}%` }}
+                  />
+                  <div
+                    className="absolute h-3 w-3 bg-white rounded-full -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      left: `${volume * 100}%`,
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => setIsQueueOpen(!isQueueOpen)}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                >
+                  <QueueListIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-2 text-gray-600 dark:text-gray-400"
+                >
+                  <ArrowsPointingOutIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <audio
+          ref={audioRef}
+          src={currentTrack.src}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleTrackEnd}
+        />
+
+        <AudioVisualizer
+          coverUrl={currentTrack.coverUrl}
+          audioRef={audioRef}
+          isFullscreen={isFullscreen}
+        />
       </div>
 
-      <audio
-        ref={audioRef}
-        src={currentTrack.src}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => setIsPlaying(false)}
-      />
-
-      <AudioVisualizer
-        coverUrl={currentTrack.coverUrl}
-        audioRef={audioRef}
-        isFullscreen={isFullscreen}
-      />
-    </div>
+      <QueuePanel isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
+    </>
   );
 }

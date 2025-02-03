@@ -7,6 +7,7 @@ import { ChevronLeftIcon, PlayIcon } from '@heroicons/react/24/solid';
 import AlbumService from '@/services/api/album.service';
 import formatTime from '@/utils/formatTime';
 import { useAudio } from '@/contexts/AudioContext';
+import { AudioContextType } from '@/types/audio';
 
 export interface Track {
   id: number;
@@ -95,7 +96,13 @@ export default function AlbumDetail() {
   const { id, trackId } = router.query;
   const [album, setAlbum] = useState<AlbumDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const { setCurrentTrack, setIsPlaying, setIsTrackChanging } = useAudio();
+  const {
+    setCurrentTrack,
+    setIsPlaying,
+    setIsTrackChanging,
+    clearQueue,
+    setQueue,
+  } = useAudio();
 
   useEffect(() => {
     const fetchAlbumDetails = async () => {
@@ -138,15 +145,34 @@ export default function AlbumDetail() {
     setIsTrackChanging(true);
     setIsPlaying(false);
 
+    // Vider la file d'attente existante
+    clearQueue();
+
+    // Ajouter les pistes suivantes à la file d'attente (en excluant la piste actuelle)
+    const trackIndex = album.Tracks.findIndex((t) => t.id === track.id);
+    const remainingTracks = album.Tracks.slice(trackIndex + 1);
+    const tracksToQueue = remainingTracks.map((nextTrack) => ({
+      id: nextTrack.id,
+      src: nextTrack.audio_file_path.urls.mp3,
+      title: nextTrack.title,
+      artist: primaryArtist?.name || '',
+      coverUrl:
+        nextTrack.cover?.urls.medium.webp || album.image_url.urls.medium.webp,
+      albumId: album.id,
+      duration: nextTrack.duration_seconds,
+    }));
+    setQueue(tracksToQueue);
+
     setTimeout(() => {
       setCurrentTrack({
-        id: track.id.toString(),
+        id: track.id,
         src: track.audio_file_path.urls.mp3,
         title: track.title,
         artist: primaryArtist?.name || '',
         coverUrl:
           track.cover?.urls.medium.webp || album.image_url.urls.medium.webp,
-        albumId: album.id.toString(),
+        albumId: album.id,
+        duration: track.duration_seconds,
       });
 
       requestAnimationFrame(() => {

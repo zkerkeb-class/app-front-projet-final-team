@@ -216,7 +216,6 @@ export default function SearchResults() {
     </div>
   );
 }
-
 export async function getServerSideProps({
   locale,
   query,
