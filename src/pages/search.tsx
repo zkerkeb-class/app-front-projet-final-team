@@ -105,6 +105,7 @@ export default function SearchResults() {
             src={track.image_url.urls.medium.webp}
             alt={track.name}
             fill
+            sizes="100vw"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
@@ -140,6 +141,7 @@ export default function SearchResults() {
             src={artist.image_url.urls.medium.webp}
             alt={artist.name}
             fill
+            sizes="100vw"
             className="object-cover rounded-full"
           />
         </div>
@@ -165,6 +167,7 @@ export default function SearchResults() {
             src={album.image_url.urls.medium.webp}
             alt={album.name}
             fill
+            sizes="100vw"
             className="object-cover"
           />
         </div>
@@ -192,6 +195,7 @@ export default function SearchResults() {
             src={playlist.image_url.urls.medium.webp}
             alt={playlist.name}
             fill
+            sizes="100vw"
             className="object-cover"
           />
         </div>

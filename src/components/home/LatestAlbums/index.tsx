@@ -92,6 +92,7 @@ export default function LatestAlbums() {
                   src={album.image_url.urls.medium.webp}
                   alt={album.title}
                   fill
+                  sizes="100vw"
                   priority={page === 2}
                   className="object-cover rounded"
                   placeholder="blur"

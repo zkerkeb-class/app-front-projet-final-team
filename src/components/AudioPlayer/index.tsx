@@ -44,6 +44,7 @@ export default function AudioPlayer() {
   const [isRepeat, setIsRepeat] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Progress bar state
   const [tempProgress, setTempProgress] = useState<number | null>(null);
@@ -100,9 +101,8 @@ export default function AudioPlayer() {
         audioRef.current.removeEventListener('loadeddata', () => {});
       }
     };
-  }, [currentTrack?.src]); // Dépend uniquement du changement de source
+  }, [currentTrack?.src]);
 
-  // Effet séparé pour gérer play/pause
   useEffect(() => {
     if (audioRef.current && currentTrack?.src === audioRef.current.src) {
       // Vérifier que c'est la même piste
@@ -257,6 +257,28 @@ export default function AudioPlayer() {
       setIsPlaying(false);
     }
   };
+
+  const toggleFullscreen = () => {
+    setIsTransitioning(true);
+    setIsFullscreen(!isFullscreen);
+    // Attendre que la transition soit terminée
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 300); // Durée de la transition CSS
+  };
+
+  // Effet pour préserver l'état de lecture pendant la transition
+  useEffect(() => {
+    if (!isTransitioning && audioRef.current && isPlaying) {
+      const playPromise = audioRef.current.play();
+      if (playPromise) {
+        playPromise.catch((error) => {
+          console.error('Erreur lors de la reprise de la lecture :', error);
+          setIsPlaying(false);
+        });
+      }
+    }
+  }, [isTransitioning]);
 
   if (!currentTrack) return null;
 

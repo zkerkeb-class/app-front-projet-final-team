@@ -38,10 +38,8 @@ export default function ArtistDetail() {
       if (id) {
         try {
           const artistData = await ArtistService.getArtistDetails(id as string);
-          console.log('API Response:', artistData);
           setArtist(artistData);
           setAlbums(artistData.Albums || []);
-          console.log('Artist state after setting:', artistData);
         } catch (error) {
           console.error(
             "Erreur lors de la récupération des détails de l'artiste:",
@@ -159,6 +157,7 @@ export default function ArtistDetail() {
                       src={album.image_url.urls.medium.webp}
                       alt={album.title}
                       fill
+                      sizes="100vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

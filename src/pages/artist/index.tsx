@@ -142,6 +142,7 @@ export default function ArtistPage() {
                     src={album.image_url.urls.medium.webp}
                     alt={album.title}
                     fill
+                    sizes="100vw"
                     className="object-cover"
                   />
                 </div>
