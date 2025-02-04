@@ -100,7 +100,6 @@ export default function PlaylistsPage() {
         </button>
       </div>
 
-      {/* Playlists spéciales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div
           onClick={() => handlePlaylistClick('mostplayed')}
@@ -137,7 +136,6 @@ export default function PlaylistsPage() {
         </div>
       </div>
 
-      {/* Liste des playlists de l'utilisateur */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

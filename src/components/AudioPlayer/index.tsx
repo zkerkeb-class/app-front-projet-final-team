@@ -56,25 +56,19 @@ export default function AudioPlayer() {
   // Queue state
   const [isQueueOpen, setIsQueueOpen] = useState(false);
 
-  // Effet pour gérer le changement de piste
   useEffect(() => {
     const resetAudioState = () => {
       if (audioRef.current) {
-        // Arrêter la lecture actuelle
         audioRef.current.pause();
 
-        // Réinitialiser l'état
         audioRef.current.currentTime = 0;
         setCurrentTime(0);
         setDuration(0);
 
-        // Mettre à jour la source
         audioRef.current.src = currentTrack?.src || '';
 
-        // Charger le nouveau média
         audioRef.current.load();
 
-        // Gérer la lecture après le chargement
         audioRef.current.addEventListener(
           'loadeddata',
           () => {
@@ -105,7 +99,6 @@ export default function AudioPlayer() {
 
   useEffect(() => {
     if (audioRef.current && currentTrack?.src === audioRef.current.src) {
-      // Vérifier que c'est la même piste
       if (isPlaying && audioRef.current.paused) {
         const playPromise = audioRef.current.play();
         if (playPromise) {
@@ -221,10 +214,8 @@ export default function AudioPlayer() {
           const value = Math.max(0, Math.min(maxValue, percentage * maxValue));
 
           if (isProgress) {
-            // Pour la barre de progression, on stocke temporairement la valeur
             setTempProgress(value);
           } else {
-            // Pour le volume, on applique directement
             callback(value);
           }
         }
@@ -232,7 +223,6 @@ export default function AudioPlayer() {
 
       const handleMouseUp = () => {
         if (isProgress && tempProgress !== null) {
-          // On applique la nouvelle position seulement au relâchement
           callback(tempProgress);
           setTempProgress(null);
         }
@@ -248,7 +238,6 @@ export default function AudioPlayer() {
 
   const handleTrackEnd = () => {
     if (queue.length > 0) {
-      // Jouer la prochaine piste de la file d'attente
       const nextTrack = queue[0];
       setCurrentTrack(nextTrack);
       removeFromQueue(nextTrack.id);
@@ -261,13 +250,11 @@ export default function AudioPlayer() {
   const toggleFullscreen = () => {
     setIsTransitioning(true);
     setIsFullscreen(!isFullscreen);
-    // Attendre que la transition soit terminée
     setTimeout(() => {
       setIsTransitioning(false);
-    }, 300); // Durée de la transition CSS
+    }, 300);
   };
 
-  // Effet pour préserver l'état de lecture pendant la transition
   useEffect(() => {
     if (!isTransitioning && audioRef.current && isPlaying) {
       const playPromise = audioRef.current.play();

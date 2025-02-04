@@ -16,7 +16,7 @@ export default function Custom404() {
           href="/"
           className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500 transition-colors"
         >
-          {t('common.backToHome')}
+          {t('backToHome')}
         </Link>
       </div>
     </div>

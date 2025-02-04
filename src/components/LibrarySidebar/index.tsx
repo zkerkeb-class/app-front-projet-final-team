@@ -1,15 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'next-i18next';
 import gsap from 'gsap';
-import {
-  BookmarkIcon,
-  MusicalNoteIcon,
-  UserIcon,
-} from '@heroicons/react/24/solid';
+import { BookmarkIcon, MusicalNoteIcon } from '@heroicons/react/24/solid';
 import { useSidebar } from '@/contexts/SidebarContext';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 export default function LibrarySidebar() {
   const { t } = useTranslation('common');

@@ -26,19 +26,16 @@ export default function AudioVisualizer({
 
     const initializeAudioAnalyser = async () => {
       try {
-        // Réutiliser le contexte audio existant s'il existe
         if (!audioContextRef.current) {
           audioContextRef.current = new (window.AudioContext ||
             (window as any).webkitAudioContext)();
         }
 
-        // Créer un nouvel analyseur si nécessaire
         if (!analyserRef.current) {
           analyserRef.current = audioContextRef.current.createAnalyser();
           analyserRef.current.fftSize = 256;
         }
 
-        // Créer une nouvelle source seulement si nécessaire
         if (!sourceRef.current && audioRef.current) {
           try {
             sourceRef.current =
@@ -59,7 +56,6 @@ export default function AudioVisualizer({
           }
         }
 
-        // Reprendre le contexte audio s'il est suspendu
         if (audioContextRef.current.state === 'suspended') {
           await audioContextRef.current.resume();
         }
@@ -96,7 +92,6 @@ export default function AudioVisualizer({
       }
     };
 
-    // Initialisation séquentielle
     const initialize = async () => {
       await initializeAudioAnalyser();
       await setupVisualizer();
@@ -105,14 +100,12 @@ export default function AudioVisualizer({
 
     initialize();
 
-    // Nettoyage
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
 
       if (!isFullscreen) {
-        // Déconnecter la source et l'analyseur
         if (sourceRef.current) {
           try {
             sourceRef.current.disconnect();
@@ -127,7 +120,6 @@ export default function AudioVisualizer({
             console.warn('Error disconnecting analyser:', error);
           }
         }
-        // Réinitialiser les refs
         sourceRef.current = null;
         analyserRef.current = null;
       }

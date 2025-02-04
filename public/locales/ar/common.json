@@ -102,6 +102,12 @@
         "registrationFailed": "فشل في إنشاء الحساب"
       }
     },
+    "library": {
+      "title": "مكتبتي",
+      "playlists": "قوائم التشغيل",
+      "albums": "الألبومات",
+      "artists": "الفنانون"
+    },
     "errors": {
       "serverError": "حدث خطأ في الخادم",
       "unauthorized": "يرجى تسجيل الدخول للمتابعة"

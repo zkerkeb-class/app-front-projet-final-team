@@ -16,7 +16,6 @@ import gsap from 'gsap';
 import SearchBar from './SearchBar';
 import { useRouter } from 'next/router';
 
-// Chargement dynamique des composants non-critiques
 const LanguageSwitcher = dynamic(() => import('./i18n'), {
   ssr: false,
   loading: () => <div className="w-8 h-8" />,

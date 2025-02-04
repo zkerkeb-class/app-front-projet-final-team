@@ -145,10 +145,8 @@ export default function AlbumDetail() {
     setIsTrackChanging(true);
     setIsPlaying(false);
 
-    // Vider la file d'attente existante
     clearQueue();
 
-    // Ajouter les pistes suivantes à la file d'attente (en excluant la piste actuelle)
     const trackIndex = album.Tracks.findIndex((t) => t.id === track.id);
     const remainingTracks = album.Tracks.slice(trackIndex + 1);
     const tracksToQueue = remainingTracks.map((nextTrack) => ({
@@ -200,7 +198,7 @@ export default function AlbumDetail() {
               alt={album.title}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 33vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 400px"
               priority
             />
           </div>

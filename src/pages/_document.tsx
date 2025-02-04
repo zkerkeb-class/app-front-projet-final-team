@@ -19,7 +19,6 @@ export default function Document() {
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="msapplication-TileColor" content="#6B46C1" />
 
-        {/* Script de détection du thème */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

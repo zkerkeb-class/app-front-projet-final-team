@@ -15,7 +15,6 @@ export default function PlaylistBackground({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Définir la taille du canvas
     const updateCanvasSize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
@@ -29,22 +28,17 @@ export default function PlaylistBackground({
       canvas.style.height = `${height}px`;
     };
 
-    // Initialiser la taille
     updateCanvasSize();
 
-    // Créer l'effet shader
     const shaderEffect = initializeShader(canvas, colors);
 
-    // Fonction d'animation
     const animate = () => {
       shaderEffect.animate(0.5);
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Démarrer l'animation
     animate();
 
-    // Gérer le redimensionnement
     window.addEventListener('resize', updateCanvasSize);
 
     // Cleanup

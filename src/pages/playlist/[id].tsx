@@ -210,13 +210,11 @@ export default function PlaylistDetailsPage() {
 
   const handlePlayTrack = (track: Track, index: number) => {
     if (playlist) {
-      // Si c'est le même morceau, on bascule play/pause
       if (currentTrack?.id === track.id) {
         togglePlayPause();
         return;
       }
 
-      // Sinon, on met à jour la file d'attente à partir de l'index sélectionné (en excluant la piste actuelle)
       const remainingTracks = playlist.tracks.slice(index + 1);
       setQueue(remainingTracks);
       playTrack(track);
@@ -225,7 +223,6 @@ export default function PlaylistDetailsPage() {
 
   const handlePlayAll = () => {
     if (playlist && playlist.tracks.length > 0) {
-      // Mettre à jour la file d'attente avec toutes les pistes sauf la première
       setQueue(playlist.tracks.slice(1));
       playTrack(playlist.tracks[0]);
     }

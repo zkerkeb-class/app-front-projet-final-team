@@ -3,6 +3,7 @@
   "language": "Langue",
   "listeners": "listeners",
   "back": "Retour",
+  "backToHome": "Retour à l'accueil",
   "menu": {
     "home": "Accueil",
     "profile": "Profil",
@@ -103,6 +104,12 @@
       "invalidCredentials": "Email ou mot de passe incorrect",
       "registrationFailed": "Erreur lors de l'inscription"
     }
+  },
+  "library": {
+    "title": "Ma bibliothèque",
+    "playlists": "Playlists",
+    "albums": "Albums",
+    "artists": "Artistes"
   },
   "errors": {
     "serverError": "Une erreur est survenue sur le serveur",

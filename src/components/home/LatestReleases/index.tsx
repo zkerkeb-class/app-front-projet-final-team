@@ -47,7 +47,6 @@ export default function LatestReleases() {
     }
   }, [page, loading, hasMore]);
 
-  // Chargement initial
   useEffect(() => {
     const initialLoad = async () => {
       try {
@@ -64,7 +63,6 @@ export default function LatestReleases() {
     initialLoad();
   }, []);
 
-  // Gestionnaire de défilement
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
