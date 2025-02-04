@@ -56,7 +56,9 @@
       "addTracksFailed": "Impossible d'ajouter les morceaux",
       "removeTrackFailed": "Impossible de supprimer le morceau",
       "loadTracksFailed": "Impossible de charger les morceaux"
-    }
+    },
+    "deleteConfirmTitle": "Supprimer la playlist",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible."
   },
   "footer": {
     "description": "Votre plateforme de streaming musical préférée",

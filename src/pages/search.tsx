@@ -19,6 +19,7 @@ const SEARCH_RESULTS_QUERY = gql`
         id
         image_url
         name
+        audiofilepath
       }
       artists {
         id
@@ -77,7 +78,7 @@ export default function SearchResults() {
       id: track.id,
       title: track.name,
       artist: track.artist_name,
-      src: track.audio_file_path.urls.mp3,
+      src: track.audiofilepath.urls.mp3,
       coverUrl: track.image_url?.urls.medium.webp,
       duration: track.duration_seconds,
       albumId: track.album_id,

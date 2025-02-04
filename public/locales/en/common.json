@@ -62,7 +62,10 @@
           "addTracksFailed": "Unable to add tracks",
           "removeTrackFailed": "Unable to remove track",
           "loadTracksFailed": "Unable to load tracks"
-        }
+        },
+        "deleteConfirmTitle": "Delete playlist",
+        "deleteConfirmMessage": "Are you sure you want to delete this playlist? This action cannot be undone.",
+        "successDelete": "Playlist successfully deleted"
     },
     "footer": {
         "description": "Your favorite music streaming platform",

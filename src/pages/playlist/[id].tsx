@@ -8,7 +8,12 @@ import recentlyPlayedService from '@/services/localStorage/recentlyPlayed.servic
 import { Playlist, ApiPlaylist, mapPlaylistFromApi } from '@/types/playlist';
 import { Track, ApiTrack, mapTrackFromApi } from '@/types/track';
 import { toast } from 'react-hot-toast';
-import { TrashIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
+import {
+  TrashIcon,
+  PlayIcon,
+  PauseIcon,
+  PencilIcon,
+} from '@heroicons/react/24/solid';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'react-i18next';
 import { FixedSizeList as List } from 'react-window';
@@ -42,6 +47,7 @@ export default function PlaylistDetailsPage() {
   const [showAddTrackModal, setShowAddTrackModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [availableTracks, setAvailableTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<number[]>([]);
   const [isLoadingTracks, setIsLoadingTracks] = useState(false);
@@ -242,6 +248,19 @@ export default function PlaylistDetailsPage() {
     }
   };
 
+  const handleDeletePlaylist = async () => {
+    if (!playlist || typeof playlist.id !== 'number') return;
+
+    try {
+      await PlaylistService.deletePlaylist(playlist.id);
+      toast.success(t('playlists.successDelete'));
+      router.push('/playlists');
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la playlist:', error);
+      toast.error(t('playlists.errors.deleteFailed'));
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -311,12 +330,22 @@ export default function PlaylistDetailsPage() {
         </div>
         <div className="flex items-center space-x-4">
           {!['mostplayed', 'recent'].includes(id as string) && (
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-            >
-              {isEditing ? t('actions.cancel') : t('actions.edit')}
-            </button>
+            <>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 rounded-full transition-colors"
+                title={t('actions.edit')}
+              >
+                <PencilIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirmation(true)}
+                className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded-full transition-colors"
+                title={t('actions.delete')}
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </>
           )}
           {playlist && playlist.tracks.length > 0 && (
             <button
@@ -542,6 +571,33 @@ export default function PlaylistDetailsPage() {
                   {t('actions.save')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              {t('playlists.deleteConfirmTitle')}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('playlists.deleteConfirmMessage')}
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={handleDeletePlaylist}
+                className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+              >
+                {t('actions.confirmDelete')}
+              </button>
             </div>
           </div>
         </div>
