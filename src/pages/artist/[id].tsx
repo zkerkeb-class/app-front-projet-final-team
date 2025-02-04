@@ -103,7 +103,20 @@ export default function ArtistDetail() {
               {artist.name}
             </h1>
             <div className="flex items-center gap-4 text-sm text-gray-300">
-              {artist.genre && <span>{artist.genre}</span>}
+              {artist.genre &&
+                Array.isArray(artist.genre) &&
+                artist.genre.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {artist.genre.map((genre, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 text-sm rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
               {artist.country && (
                 <>
                   <span>•</span>

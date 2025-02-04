@@ -180,9 +180,7 @@ export default function PlaylistsPage() {
                       </p>
                     )}
                     <p className="text-sm text-white opacity-80">
-                      {t('playlists.tracks', {
-                        count: playlist.tracks?.length || 0,
-                      })}
+                      {playlist.tracks.length} {t('tracks')}
                     </p>
                   </div>
                 </div>

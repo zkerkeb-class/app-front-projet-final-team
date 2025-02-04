@@ -29,6 +29,7 @@ export default function PopularArtists() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -54,10 +55,16 @@ export default function PopularArtists() {
   // Initial load
   useEffect(() => {
     const initialLoad = async () => {
-      const apiArtists = await ArtistService.getPopularArtists(10, 1);
-      setArtists(apiArtists);
-      setHasMore(apiArtists.length === 10);
-      setPage(2);
+      try {
+        const apiArtists = await ArtistService.getPopularArtists(10, 1);
+        setArtists(apiArtists);
+        setHasMore(apiArtists.length === 10);
+        setPage(2);
+      } catch (error) {
+        console.error('Erreur lors du chargement initial des artistes:', error);
+      } finally {
+        setIsInitialLoading(false);
+      }
     };
     initialLoad();
   }, []);
@@ -78,6 +85,10 @@ export default function PopularArtists() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [loadMoreArtists]);
 
+  if (isInitialLoading) {
+    return null;
+  }
+
   return (
     <div className="pb-4">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -85,7 +96,7 @@ export default function PopularArtists() {
       </h2>
       <div
         ref={containerRef}
-        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar"
+        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar min-h-[300px]"
       >
         {artists.map((artist) => (
           <Link
@@ -93,13 +104,13 @@ export default function PopularArtists() {
             key={artist.id}
             className="snap-start flex-none w-48"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform ">
-              <div className="relative aspect-square">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-transform h-full">
+              <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
                 <Image
                   src={artist.image_url.urls.medium.webp}
                   alt={artist.name}
                   fill
-                  loading="lazy"
+                  priority={page === 2}
                   className="object-cover"
                   sizes="192px"
                   placeholder="blur"
@@ -115,9 +126,15 @@ export default function PopularArtists() {
                   {t('listeners')}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  <span className="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100">
-                    {artist.genre}
-                  </span>
+                  {Array.isArray(artist.genre) &&
+                    artist.genre.map((genre, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100"
+                      >
+                        {genre}
+                      </span>
+                    ))}
                 </div>
               </div>
             </div>

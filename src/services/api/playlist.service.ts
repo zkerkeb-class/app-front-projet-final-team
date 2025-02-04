@@ -41,6 +41,7 @@ class PlaylistService {
     id: number,
     formData: FormData,
   ): Promise<Playlist> {
+    console.log('formData', formData);
     const response = await fetch(`${API_URL}/playlists/${id}`, {
       method: 'PUT',
       headers: this.getHeaders(),

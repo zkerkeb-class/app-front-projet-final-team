@@ -11,6 +11,7 @@ export default function LatestAlbums() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -36,10 +37,16 @@ export default function LatestAlbums() {
   // Initial load
   useEffect(() => {
     const initialLoad = async () => {
-      const response = await AlbumService.getLatestAlbums(10, 1);
-      setAlbums(response.data);
-      setHasMore(response.metadata.hasNextPage);
-      setPage(2);
+      try {
+        const response = await AlbumService.getLatestAlbums(10, 1);
+        setAlbums(response.data);
+        setHasMore(response.metadata.hasNextPage);
+        setPage(2);
+      } catch (error) {
+        console.error('Erreur lors du chargement initial des albums:', error);
+      } finally {
+        setIsInitialLoading(false);
+      }
     };
     initialLoad();
   }, []);
@@ -60,14 +67,18 @@ export default function LatestAlbums() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [loadMoreAlbums]);
 
+  if (isInitialLoading) {
+    return null;
+  }
+
   return (
     <div className="pb-4">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        {t('latestAlbums')}
+        {t('home.latestAlbums')}
       </h2>
       <div
         ref={containerRef}
-        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar"
+        className="flex overflow-x-auto gap-4 snap-x snap-mandatory hide-scrollbar min-h-[300px]"
       >
         {albums.map((album) => (
           <Link
@@ -75,13 +86,13 @@ export default function LatestAlbums() {
             key={album.id}
             className="snap-start flex-none w-48"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-              <div className="relative aspect-square">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden h-full">
+              <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
                 <Image
                   src={album.image_url.urls.medium.webp}
                   alt={album.title}
                   fill
-                  loading="lazy"
+                  priority={page === 2}
                   className="object-cover rounded"
                   placeholder="blur"
                   blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkMjU0LS0yMi4qIiUvKTI+RjEvMTl1WV1VY25xeHJpcW+Dg3X/2wBDARUXFx4aHR4eHXVvIiJ1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXX/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="

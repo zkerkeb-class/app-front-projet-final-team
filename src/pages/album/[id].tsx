@@ -59,7 +59,7 @@ export interface AlbumDetails {
   id: number;
   title: string;
   release_date: string;
-  genre: string;
+  genre: string[];
   total_tracks: number;
   image_url: {
     urls: {
@@ -220,7 +220,17 @@ export default function AlbumDetail() {
               {album.total_tracks} {t('tracks')}
             </span>
             <span>•</span>
-            <span>{album.genre}</span>
+            <div className="flex flex-wrap gap-2">
+              {Array.isArray(album.genre) &&
+                album.genre.map((genre, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 text-sm rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100"
+                  >
+                    {genre}
+                  </span>
+                ))}
+            </div>
           </div>
 
           <div className="space-y-2">

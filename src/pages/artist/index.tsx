@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { AlbumDetails } from '@/pages/album/[id]';
+import React from 'react';
 
 export async function getStaticProps({ locale }: { locale: string }) {
   return {
@@ -148,9 +149,17 @@ export default function ArtistPage() {
                   <h3 className="font-medium text-gray-900 dark:text-white truncate">
                     {album.title}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {album.genre} • {new Date(album.release_date).getFullYear()}
-                  </p>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {Array.isArray(album.genre) &&
+                      album.genre.map((genre, index) => (
+                        <React.Fragment key={index}>
+                          {index > 0 && ', '}
+                          <span>{genre}</span>
+                        </React.Fragment>
+                      ))}
+                    {' • '}
+                    {new Date(album.release_date).getFullYear()}
+                  </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {album.total_tracks} pistes
                   </p>

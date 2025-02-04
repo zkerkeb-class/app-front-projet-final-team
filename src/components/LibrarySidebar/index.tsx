@@ -74,7 +74,7 @@ export default function LibrarySidebar() {
             {t('playlists.title')}
           </span>
         </Link>
-        <Link
+        {/* <Link
           href="/artist"
           className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
         >
@@ -84,7 +84,7 @@ export default function LibrarySidebar() {
           <span ref={setTextRef(2)} className="whitespace-nowrap">
             {t('search.artist')}
           </span>
-        </Link>
+        </Link> */}
 
         {/* <div className="flex items-center h-10 space-x-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
           <span className="text-purple-600 shrink-0">

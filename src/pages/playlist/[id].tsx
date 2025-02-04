@@ -42,7 +42,6 @@ export default function PlaylistDetailsPage() {
   const [showAddTrackModal, setShowAddTrackModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
-  const [editedDescription, setEditedDescription] = useState('');
   const [availableTracks, setAvailableTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<number[]>([]);
   const [isLoadingTracks, setIsLoadingTracks] = useState(false);
@@ -172,7 +171,6 @@ export default function PlaylistDetailsPage() {
   useEffect(() => {
     if (playlist) {
       setEditedTitle(playlist.title);
-      setEditedDescription(playlist.description || '');
     }
   }, [playlist]);
 
@@ -233,7 +231,6 @@ export default function PlaylistDetailsPage() {
     try {
       const formData = new FormData();
       formData.append('title', editedTitle);
-      formData.append('description', editedDescription);
 
       await PlaylistService.updatePlaylist(playlist.id, formData);
       toast.success(t('playlists.successUpdate'));
@@ -283,20 +280,13 @@ export default function PlaylistDetailsPage() {
                 type="text"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
-                className="w-full text-3xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-purple-500 focus:ring-0 px-0"
+                className="w-full text-3xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-purple-500 focus:ring-0 px-2 py-1 outline-none dark:text-white"
                 placeholder={t('playlists.title')}
-              />
-              <textarea
-                value={editedDescription}
-                onChange={(e) => setEditedDescription(e.target.value)}
-                className="w-full bg-transparent border-b border-gray-300 dark:border-gray-700 focus:border-purple-500 focus:ring-0 px-0 resize-none"
-                placeholder={t('playlists.description')}
-                rows={2}
               />
               <div className="flex space-x-2">
                 <button
                   onClick={handleUpdatePlaylist}
-                  className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                  className="px-4 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   {t('actions.save')}
                 </button>
@@ -304,9 +294,8 @@ export default function PlaylistDetailsPage() {
                   onClick={() => {
                     setIsEditing(false);
                     setEditedTitle(playlist.title);
-                    setEditedDescription(playlist.description || '');
                   }}
-                  className="px-3 py-1 text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"
+                  className="px-4 py-2 text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 >
                   {t('actions.cancel')}
                 </button>
@@ -314,14 +303,9 @@ export default function PlaylistDetailsPage() {
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {playlist.title}
               </h1>
-              {playlist.description && (
-                <p className="text-gray-600 dark:text-gray-400">
-                  {playlist.description}
-                </p>
-              )}
             </>
           )}
         </div>
