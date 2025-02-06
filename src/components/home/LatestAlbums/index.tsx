@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import AlbumService from '@/services/api/album.service';
 import { Album } from '@/types/album';
+import SkeletonLoader from '../../common/SkeletonLoader';
 
 export default function LatestAlbums() {
   const { t } = useTranslation('common');
@@ -68,7 +69,16 @@ export default function LatestAlbums() {
   }, [loadMoreAlbums]);
 
   if (isInitialLoading) {
-    return null;
+    return (
+      <div className="pb-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          {t('home.latestAlbums')}
+        </h2>
+        <div className="overflow-x-auto hide-scrollbar min-h-[300px]">
+          <SkeletonLoader type="album" count={5} />
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -59,7 +59,10 @@
       "loadTracksFailed": "Impossible de charger les morceaux"
     },
     "deleteConfirmTitle": "Supprimer la playlist",
-    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible."
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette playlist ? Cette action est irréversible.",
+    "deleteTrackConfirmTitle": "Supprimer la musique",
+    "deleteTrackConfirmMessage": "Êtes-vous sûr de vouloir supprimer '{{track}}' de cette playlist ?",
+    "trackToDelete": ""
   },
   "footer": {
     "description": "Votre plateforme de streaming musical préférée",
@@ -114,5 +117,20 @@
   "errors": {
     "serverError": "Une erreur est survenue sur le serveur",
     "unauthorized": "Veuillez vous connecter pour continuer"
+  },
+  "offline": {
+    "title": "Pas de connexion Internet",
+    "description": "Vérifiez votre connexion Internet et réessayez.",
+    "retry": "Réessayer",
+    "gameTitle": "En attendant la connexion...",
+    "gameDescription": "Testez votre mémoire en trouvant les paires de symboles musicaux !",
+    "game": {
+      "moves": "Coups",
+      "bestScore": "Meilleur score",
+      "congratulations": "Félicitations !",
+      "completedIn": "Partie terminée en {{moves}} coups !",
+      "newGame": "Nouvelle partie",
+      "instructions": "Retournez les cartes pour trouver les paires de symboles musicaux"
+    }
   }
 }

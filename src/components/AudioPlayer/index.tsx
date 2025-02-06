@@ -157,12 +157,66 @@ export default function AudioPlayer() {
     }
   };
 
+  const handleTrackEnd = () => {
+    if (isRepeat) {
+      // Rejouer la piste actuelle
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+      return;
+    }
+
+    if (queue.length > 0) {
+      if (isShuffle) {
+        // Sélectionner une piste aléatoire de la file d'attente
+        const randomIndex = Math.floor(Math.random() * queue.length);
+        const nextTrack = queue[randomIndex];
+        setCurrentTrack(nextTrack);
+        removeFromQueue(nextTrack.id);
+      } else {
+        // Lecture normale : prendre la première piste de la file
+        const nextTrack = queue[0];
+        setCurrentTrack(nextTrack);
+        removeFromQueue(nextTrack.id);
+      }
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
   const handleNext = () => {
-    console.log('Next track');
+    if (queue.length > 0) {
+      if (isShuffle) {
+        const randomIndex = Math.floor(Math.random() * queue.length);
+        const nextTrack = queue[randomIndex];
+        setCurrentTrack(nextTrack);
+        removeFromQueue(nextTrack.id);
+      } else {
+        const nextTrack = queue[0];
+        setCurrentTrack(nextTrack);
+        removeFromQueue(nextTrack.id);
+      }
+      setIsPlaying(true);
+    }
   };
 
   const handlePrevious = () => {
-    console.log('Previous track');
+    if (audioRef.current && audioRef.current.currentTime > 3) {
+      // Si on est à plus de 3 secondes dans la piste, on revient au début
+      audioRef.current.currentTime = 0;
+    } else if (currentTrack) {
+      // Sinon, on remet la piste actuelle dans la file d'attente en première position
+      const updatedQueue = [currentTrack, ...queue];
+      if (queue.length > 0) {
+        const previousTrack = updatedQueue[updatedQueue.length - 1];
+        setCurrentTrack(previousTrack);
+        const newQueue = updatedQueue.slice(0, -1);
+        // Mettre à jour la file d'attente dans le contexte
+        newQueue.forEach((track) => removeFromQueue(track.id));
+      }
+    }
   };
 
   /**
@@ -236,17 +290,6 @@ export default function AudioPlayer() {
     [tempProgress],
   );
 
-  const handleTrackEnd = () => {
-    if (queue.length > 0) {
-      const nextTrack = queue[0];
-      setCurrentTrack(nextTrack);
-      removeFromQueue(nextTrack.id);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(false);
-    }
-  };
-
   const toggleFullscreen = () => {
     setIsTransitioning(true);
     setIsFullscreen(!isFullscreen);
@@ -267,40 +310,60 @@ export default function AudioPlayer() {
     }
   }, [isTransitioning]);
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = isRepeat;
+    }
+  }, [isRepeat]);
+
   if (!currentTrack) return null;
 
   return (
     <>
       <div
         onClick={() =>
-          window.innerWidth < 768 && setIsFullscreen(!isFullscreen)
+          window.innerWidth < 768 &&
+          !isQueueOpen &&
+          setIsFullscreen(!isFullscreen)
         }
         className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 ${
           isFullscreen ? 'h-screen' : 'h-auto md:h-24'
         }`}
       >
         <div
-          className={`max-w-7xl mx-auto ${isFullscreen ? 'h-full flex flex-col justify-center items-center' : 'flex flex-row items-center justify-between'} md:space-y-0`}
+          className={`max-w-7xl mx-auto ${
+            isFullscreen
+              ? 'h-full flex flex-col justify-center items-center'
+              : 'flex flex-row items-center justify-between'
+          } md:space-y-0`}
         >
           {/* Cover and infos */}
           <div
-            className={`flex ${isFullscreen ? 'flex-col items-center mb-8' : 'items-center space-x-4'} w-full md:w-auto`}
+            className={`flex ${
+              isFullscreen
+                ? 'flex-col items-center mb-8'
+                : 'items-center space-x-4'
+            } w-full md:w-auto ${!isFullscreen && 'flex-1 md:flex-initial'}`}
           >
             <Image
               src={currentTrack.coverUrl}
               alt={currentTrack.title}
-              className={`rounded-lg object-cover ${isFullscreen ? 'w-64 h-64 mb-4' : 'w-16 h-16'}`}
+              className={`rounded-lg object-cover ${
+                isFullscreen ? 'w-64 h-64 mb-4' : 'w-12 h-12 md:w-16 md:h-16'
+              }`}
               width={isFullscreen ? 256 : 64}
               height={isFullscreen ? 256 : 64}
               placeholder="blur"
               blurDataURL={currentTrack.coverUrl}
             />
-            <div className={`min-w-0 ${isFullscreen ? 'text-center' : ''}`}>
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+            <div
+              className={`min-w-0 flex-1 md:flex-initial ${isFullscreen ? 'text-center' : ''}`}
+            >
+              <h3 className="font-semibold text-gray-900 dark:text-white truncate text-sm md:text-base">
                 {currentTrack.title}
               </h3>
               <p
-                className={`text-sm text-gray-600 dark:text-gray-400 truncate ${isFullscreen ? 'block' : 'hidden md:block'}`}
+                className={`text-xs md:text-sm text-gray-600 dark:text-gray-400 truncate`}
               >
                 {currentTrack.artist}
               </p>
@@ -594,7 +657,7 @@ export default function AudioPlayer() {
               </div>
 
               {/* Secondary controls - desktop only */}
-              <div className="flex items-center space-x-2">
+              <div className="hidden md:flex items-center space-x-2">
                 <button onClick={toggleMute}>
                   {isMuted ? (
                     <SpeakerXMarkIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
@@ -647,6 +710,22 @@ export default function AudioPlayer() {
                   <ArrowsPointingOutIcon className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Mobile controls */}
+              <div className="flex md:hidden items-center space-x-2">
+                <button
+                  onClick={() => setIsQueueOpen(!isQueueOpen)}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                >
+                  <QueueListIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-2 text-gray-600 dark:text-gray-400"
+                >
+                  <ArrowsPointingOutIcon className="w-5 h-5" />
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -657,6 +736,7 @@ export default function AudioPlayer() {
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleTrackEnd}
+          loop={isRepeat}
         />
 
         <AudioVisualizer
@@ -666,7 +746,17 @@ export default function AudioPlayer() {
         />
       </div>
 
-      <QueuePanel isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
+      <QueuePanel
+        isOpen={isQueueOpen}
+        onClose={() => setIsQueueOpen(false)}
+        className={`fixed right-0 transform transition-transform duration-300 ease-in-out ${
+          isQueueOpen ? 'translate-x-0' : 'translate-x-full'
+        } ${
+          isFullscreen
+            ? 'top-0 h-screen w-full md:w-80 z-[60]'
+            : 'top-0 md:top-auto md:bottom-24 h-[calc(100vh-4rem)] md:h-[calc(100vh-6rem)] w-full md:w-80'
+        } bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-lg z-50`}
+      />
     </>
   );
 }

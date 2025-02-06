@@ -8,9 +8,14 @@ import gsap from 'gsap';
 interface QueuePanelProps {
   isOpen: boolean;
   onClose: () => void;
+  className?: string;
 }
 
-export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
+export default function QueuePanel({
+  isOpen,
+  onClose,
+  className = '',
+}: QueuePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const {
     queue,
@@ -50,7 +55,7 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
   return (
     <div
       ref={panelRef}
-      className="fixed top-0 right-0 w-80 h-[calc(100vh-6rem)] bg-white dark:bg-gray-800 shadow-lg transform translate-x-full z-50 flex flex-col"
+      className={`fixed top-0 right-0 w-80 h-[calc(100vh-6rem)] bg-white dark:bg-gray-800 shadow-lg transform translate-x-full z-50 flex flex-col ${className}`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">

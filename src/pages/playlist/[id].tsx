@@ -48,6 +48,7 @@ export default function PlaylistDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);
   const [availableTracks, setAvailableTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<number[]>([]);
   const [isLoadingTracks, setIsLoadingTracks] = useState(false);
@@ -195,16 +196,27 @@ export default function PlaylistDetailsPage() {
     }
   };
 
-  const handleRemoveTrack = async (trackId: number) => {
-    if (!playlist || typeof playlist.id !== 'number') return;
+  const handleRemoveTrack = (track: Track) => {
+    setTrackToDelete(track);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmTrackDeletion = async () => {
+    if (!playlist || typeof playlist.id !== 'number' || !trackToDelete) return;
 
     try {
-      await PlaylistService.removeTracksFromPlaylist(playlist.id, trackId);
+      await PlaylistService.removeTracksFromPlaylist(
+        playlist.id,
+        trackToDelete.id,
+      );
       toast.success(t('playlists.successRemoveTrack'));
       fetchPlaylist();
     } catch (error) {
       console.error('Erreur lors de la suppression du morceau:', error);
       toast.error(t('playlists.errors.removeTrackFailed'));
+    } finally {
+      setShowDeleteConfirmation(false);
+      setTrackToDelete(null);
     }
   };
 
@@ -408,7 +420,7 @@ export default function PlaylistDetailsPage() {
               </div>
               {!['mostplayed', 'recent'].includes(id as string) && (
                 <button
-                  onClick={() => handleRemoveTrack(track.id)}
+                  onClick={() => handleRemoveTrack(track)}
                   className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900 rounded-full transition-colors"
                   title="Supprimer de la playlist"
                 >
@@ -573,7 +585,7 @@ export default function PlaylistDetailsPage() {
         </div>
       )}
 
-      {showDeleteConfirmation && (
+      {showDeleteConfirmation && !trackToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -591,6 +603,38 @@ export default function PlaylistDetailsPage() {
               </button>
               <button
                 onClick={handleDeletePlaylist}
+                className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
+              >
+                {t('actions.confirmDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirmation && trackToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              {t('playlists.deleteTrackConfirmTitle')}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('playlists.deleteTrackConfirmMessage', {
+                track: trackToDelete.title,
+              })}
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setTrackToDelete(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={confirmTrackDeletion}
                 className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200"
               >
                 {t('actions.confirmDelete')}

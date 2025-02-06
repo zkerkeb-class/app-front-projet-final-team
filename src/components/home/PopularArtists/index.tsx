@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ArtistService from '../../../services/api/artist.service';
+import SkeletonLoader from '../../common/SkeletonLoader';
 
 /**
  * Interface for artist data from API
@@ -85,8 +86,17 @@ export default function PopularArtists() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [loadMoreArtists]);
 
-  if (isInitialLoading) {
-    return null;
+  if (!isInitialLoading) {
+    return (
+      <div className="pb-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          {t('home.popularArtists')}
+        </h2>
+        <div className="overflow-x-auto hide-scrollbar min-h-[300px]">
+          <SkeletonLoader type="artist" count={5} />
+        </div>
+      </div>
+    );
   }
 
   return (
