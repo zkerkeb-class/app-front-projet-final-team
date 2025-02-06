@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { MusicalNoteIcon } from '@heroicons/react/24/solid';
 import { useTranslation } from 'next-i18next';
 
 const CARDS = [

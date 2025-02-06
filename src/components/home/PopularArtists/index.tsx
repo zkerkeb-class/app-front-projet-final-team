@@ -86,7 +86,7 @@ export default function PopularArtists() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [loadMoreArtists]);
 
-  if (!isInitialLoading) {
+  if (isInitialLoading) {
     return (
       <div className="pb-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
