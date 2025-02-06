@@ -10,18 +10,23 @@ import {
   BackwardIcon,
   ForwardIcon,
   QueueListIcon,
+  UsersIcon,
 } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import AudioVisualizer from './components/AudioVisualizer';
 import { useAudio } from '@/contexts/AudioContext';
 import formatTime from '@/utils/formatTime';
 import QueuePanel from '../QueuePanel';
+import JamSession from '../JamSession';
+import jamSessionService from '@/services/socket/jamSession.service';
+import { useTranslation } from 'next-i18next';
 
 /**
  * Main audio player component
  * Handles playback controls, progress bar, volume and fullscreen mode
  */
 export default function AudioPlayer() {
+  const { t } = useTranslation('common');
   // Audio context
   const {
     currentTrack,
@@ -55,6 +60,9 @@ export default function AudioPlayer() {
 
   // Queue state
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+
+  // Add new state for jam session
+  const [isJamSessionOpen, setIsJamSessionOpen] = useState(false);
 
   useEffect(() => {
     const resetAudioState = () => {
@@ -316,6 +324,27 @@ export default function AudioPlayer() {
     }
   }, [isRepeat]);
 
+  // Add effect to sync playback state with jam session
+  useEffect(() => {
+    if (jamSessionService.isInSession()) {
+      jamSessionService.updatePlaybackState(isPlaying);
+    }
+  }, [isPlaying]);
+
+  // Add effect to sync track changes with jam session
+  useEffect(() => {
+    if (jamSessionService.isInSession() && currentTrack) {
+      jamSessionService.updateTrack(currentTrack);
+    }
+  }, [currentTrack]);
+
+  // Add effect to sync progress with jam session
+  useEffect(() => {
+    if (jamSessionService.isInSession()) {
+      jamSessionService.updateProgress(currentTime);
+    }
+  }, [currentTime]);
+
   if (!currentTrack) return null;
 
   return (
@@ -324,6 +353,7 @@ export default function AudioPlayer() {
         onClick={() =>
           window.innerWidth < 768 &&
           !isQueueOpen &&
+          !isJamSessionOpen &&
           setIsFullscreen(!isFullscreen)
         }
         className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 ${
@@ -709,6 +739,17 @@ export default function AudioPlayer() {
                 >
                   <ArrowsPointingOutIcon className="w-5 h-5" />
                 </button>
+                <button
+                  onClick={() => setIsJamSessionOpen(!isJamSessionOpen)}
+                  className={`p-2 ${
+                    jamSessionService.isInSession()
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'
+                  }`}
+                  title={t('jam.title')}
+                >
+                  <UsersIcon className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Mobile controls */}
@@ -724,6 +765,16 @@ export default function AudioPlayer() {
                   className="p-2 text-gray-600 dark:text-gray-400"
                 >
                   <ArrowsPointingOutIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsJamSessionOpen(!isJamSessionOpen)}
+                  className={`p-2 ${
+                    jamSessionService.isInSession()
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'
+                  }`}
+                >
+                  <UsersIcon className="w-5 h-5" />
                 </button>
               </div>
             </>
@@ -756,6 +807,12 @@ export default function AudioPlayer() {
             ? 'top-0 h-screen w-full md:w-80 z-[60]'
             : 'top-0 md:top-auto md:bottom-24 h-[calc(100vh-4rem)] md:h-[calc(100vh-6rem)] w-full md:w-80'
         } bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-lg z-50`}
+      />
+
+      {/* Add jam session panel */}
+      <JamSession
+        isOpen={isJamSessionOpen}
+        onClose={() => setIsJamSessionOpen(false)}
       />
     </>
   );
