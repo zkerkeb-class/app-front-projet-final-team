@@ -1,14 +1,21 @@
 import { SignalSlashIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from 'next-i18next';
 import OfflineGame from '../OfflineGame';
+import { useRouter } from 'next/router';
 
-export default function OfflinePage() {
+interface OfflinePageProps {
+  isRefresh?: boolean;
+}
+
+export default function OfflinePage({ isRefresh = false }: OfflinePageProps) {
   const { t } = useTranslation('common');
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="text-center p-8 max-w-md">
-        <SignalSlashIcon className="w-24 h-24 mx-auto text-gray-400 dark:text-gray-600 mb-6" />
+        {!isRefresh && (
+          <SignalSlashIcon className="w-24 h-24 mx-auto text-gray-400 dark:text-gray-600 mb-6" />
+        )}
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
           {t('offline.title')}
         </h1>
@@ -22,15 +29,17 @@ export default function OfflinePage() {
           {t('offline.retry')}
         </button>
 
-        <div className="mt-12 border-t border-gray-200 dark:border-gray-800 pt-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            {t('offline.gameTitle')}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t('offline.gameDescription')}
-          </p>
-          <OfflineGame />
-        </div>
+        {!isRefresh && (
+          <div className="mt-12 border-t border-gray-200 dark:border-gray-800 pt-8">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              {t('offline.gameTitle')}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {t('offline.gameDescription')}
+            </p>
+            <OfflineGame />
+          </div>
+        )}
       </div>
     </div>
   );

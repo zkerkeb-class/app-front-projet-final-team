@@ -9,6 +9,14 @@ const urlsToCache = [
   '/locales/en/common.json',
 ];
 
+// Dynamic routes that should be handled
+const DYNAMIC_ROUTES = [
+  /^\/jam\/[a-zA-Z0-9-]+$/,
+  /^\/playlist\/[a-zA-Z0-9-]+$/,
+  /^\/album\/[a-zA-Z0-9-]+$/,
+  /^\/artist\/[a-zA-Z0-9-]+$/
+];
+
 // Install service worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -18,6 +26,12 @@ self.addEventListener('install', (event) => {
       })
   );
 });
+
+// Helper function to check if URL matches dynamic routes
+const isDynamicRoute = (url) => {
+  const pathname = new URL(url).pathname;
+  return DYNAMIC_ROUTES.some(pattern => pattern.test(pathname));
+};
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
@@ -29,14 +43,28 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
 
-        // Try to fetch from network
-        return fetch(event.request)
-          .catch(() => {
-            // If offline and request is for a page, return the offline page
-            if (event.request.mode === 'navigate') {
-              return caches.match('/offline');
-            }
+        // Clone the request because it can only be used once
+        const fetchRequest = event.request.clone();
+
+        // Handle dynamic routes and navigation requests differently
+        if (event.request.mode === 'navigate' || isDynamicRoute(event.request.url)) {
+          return fetch(fetchRequest, {
+            redirect: 'follow',
+            credentials: 'include'
+          }).catch(() => {
+            // If offline, return the offline page for navigation requests
+            return caches.match('/offline');
           });
+        }
+
+        // For other requests, try to fetch from network
+        return fetch(fetchRequest, {
+          redirect: 'follow',
+          credentials: 'include'
+        }).catch(() => {
+          // Return offline content for non-navigation requests
+          return new Response('Offline content not available');
+        });
       })
   );
 });
@@ -54,4 +82,11 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+});
+
+// Handle messages from the client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 }); 

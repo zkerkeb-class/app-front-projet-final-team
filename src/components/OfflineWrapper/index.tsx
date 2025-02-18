@@ -12,8 +12,9 @@ export default function OfflineWrapper({ children }: OfflineWrapperProps) {
       render={({ online }: { online: boolean }): React.ReactElement => {
         if (online) {
           return <>{children}</>;
+        } else {
+          return <OfflinePage />;
         }
-        return <OfflinePage />;
       }}
     />
   );

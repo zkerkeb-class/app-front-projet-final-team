@@ -12,7 +12,7 @@ export default function Offline() {
         <title>{t('offline.title')} | ZakHarmony</title>
         <meta name="description" content={t('offline.description')} />
       </Head>
-      <OfflinePage />
+      <OfflinePage isRefresh={true} />
     </>
   );
 }

@@ -14,7 +14,14 @@ interface User {
   username: string;
   first_name?: string;
   last_name?: string;
-  image_url?: any;
+  image_url?: {
+    urls: {
+      medium: {
+        webp: string;
+      };
+    };
+  };
+  avatar?: string;
   user_type: 'standard' | 'artist';
   created_at: string;
 }
@@ -87,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (refreshError) {
           console.error('Erreur lors du rafraîchissement:', refreshError);
-          logout();
+          handleLogout();
         }
       }
     } catch (error) {
@@ -95,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Erreur lors de la vérification de l'authentification:",
         error,
       );
-      logout();
+      handleLogout();
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return newAccessToken;
     } catch (error) {
       console.error('Erreur lors du rafraîchissement du token:', error);
-      logout();
+      handleLogout();
       throw error;
     }
   };
@@ -211,10 +218,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);
+  };
+
+  const logout = () => {
+    handleLogout();
     router.push('/auth/login');
   };
 
