@@ -44,7 +44,7 @@ const DEMO_TRACKS: Track[] = [
     id: '1',
     title: 'Demo Track 1',
     artist: 'Artist 1',
-    url: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3',
+    url: 'https://kappa.vgmsite.com/soundtracks/dragon-ball-z-bgm/midwhnddmf/1-01.%20Makafushigi%20Adventure%21.mp3',
     albumCover:
       'https://www.galeriebd.com/wp-content/uploads/2023/04/Animation_DRAGON_Ball_4_3.jpg',
   },
@@ -52,7 +52,7 @@ const DEMO_TRACKS: Track[] = [
     id: '2',
     title: 'Demo Track 2',
     artist: 'Artist 2',
-    url: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Sevish_-__nbsp_.mp3',
+    url: 'https://vgmsite.com/soundtracks/naruto-path-of-the-ninja/icabycfj/Bad%20Memories.mp3',
     albumCover:
       'https://static.wikia.nocookie.net/naruto/images/d/dd/Naruto_Uzumaki%21%21.png',
   },
