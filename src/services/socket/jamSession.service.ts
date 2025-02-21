@@ -262,21 +262,18 @@ class JamSessionService {
   ): Promise<string> {
     try {
       const token = this.getToken();
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name,
-            description,
-            maxParticipants,
-          }),
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          name,
+          description,
+          maxParticipants,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to create jam session');
@@ -298,7 +295,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${roomId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${roomId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -323,14 +320,11 @@ class JamSessionService {
   async getActiveSessions(): Promise<JamSessionDetails[]> {
     try {
       const token = this.getToken();
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error('Failed to get active sessions');
@@ -415,7 +409,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${this.roomId}/participant`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${this.roomId}/participant`,
         {
           method: 'PUT',
           headers: {
@@ -446,7 +440,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${this.roomId}/close`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${this.roomId}/close`,
         {
           method: 'PUT',
           headers: {
