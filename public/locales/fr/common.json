@@ -145,6 +145,21 @@
     "participantJoined": "{{username}} a rejoint la session",
     "participantLeft": "{{username}} a quitté la session",
     "retry": "Réessayer",
+    "controls": "Contrôles",
+    "connected": "Connecté à la session",
+    "disconnected": "Déconnecté",
+    "selectInstrument": "Choisir un instrument",
+    "instrumentChanged": "Instrument changé pour {{instrument}}",
+    "ready": "Prêt !",
+    "notReady": "Pas encore prêt",
+    "quickActions": "Actions rapides",
+    "applaud": "Applaudir",
+    "requestEncore": "Demander un rappel",
+    "createNew": "Créer une nouvelle session",
+    "creating": "Création en cours...",
+    "or": "ou",
+    "haveInvite": "Vous avez une invitation ?",
+    "joinExisting": "Rejoindre une session existante",
     "status": {
       "checking": "Vérification de la session...",
       "unauthorized": "Redirection vers la page de connexion...",
@@ -159,7 +174,9 @@
       "copyFailed": "Impossible de copier le lien",
       "connectionTimeout": "Délai de connexion dépassé",
       "roomFull": "La session est pleine",
-      "roomClosed": "La session est fermée ou n'existe pas"
+      "roomClosed": "La session est fermée ou n'existe pas",
+      "fetchFailed": "Impossible de récupérer les détails de la session",
+      "unauthorized": "Veuillez vous connecter pour continuer"
     }
   }
 }

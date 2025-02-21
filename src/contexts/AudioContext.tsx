@@ -6,6 +6,7 @@ interface AudioContextType {
   isPlaying: boolean;
   currentTime: number;
   queue: Track[];
+  isTrackChanging: boolean;
   setQueue: (tracks: Track[]) => void;
   setCurrentTrack: (track: Track | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
@@ -51,6 +52,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         isPlaying,
         currentTime,
         queue,
+        isTrackChanging,
         setQueue,
         setCurrentTrack,
         setIsPlaying,

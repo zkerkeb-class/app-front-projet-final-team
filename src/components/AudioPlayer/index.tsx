@@ -20,6 +20,8 @@ import QueuePanel from '../QueuePanel';
 import JamSession from '../JamSession';
 import jamSessionService from '@/services/socket/jamSession.service';
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+import { toast } from 'react-hot-toast';
 
 /**
  * Main audio player component
@@ -27,6 +29,7 @@ import { useTranslation } from 'next-i18next';
  */
 export default function AudioPlayer() {
   const { t } = useTranslation('common');
+  const router = useRouter();
   // Audio context
   const {
     currentTrack,
@@ -63,6 +66,7 @@ export default function AudioPlayer() {
 
   // Add new state for jam session
   const [isJamSessionOpen, setIsJamSessionOpen] = useState(false);
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   useEffect(() => {
     const resetAudioState = () => {
@@ -344,6 +348,24 @@ export default function AudioPlayer() {
       jamSessionService.updateProgress(currentTime);
     }
   }, [currentTime]);
+
+  const handleCreateSession = async () => {
+    try {
+      setIsCreatingSession(true);
+      const roomId = await jamSessionService.createSession(
+        'New Jam Session',
+        "Let's jam together!",
+        10,
+      );
+      if (roomId) {
+        router.push(`/jam/${roomId}`);
+      }
+    } catch (error) {
+      toast.error(t('jam.errors.createFailed'));
+    } finally {
+      setIsCreatingSession(false);
+    }
+  };
 
   if (!currentTrack) return null;
 
@@ -810,10 +832,70 @@ export default function AudioPlayer() {
       />
 
       {/* Add jam session panel */}
-      <JamSession
-        isOpen={isJamSessionOpen}
-        onClose={() => setIsJamSessionOpen(false)}
-      />
+      {isJamSessionOpen && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setIsJamSessionOpen(false)}
+          />
+          <div className="relative z-10">
+            {jamSessionService.getCurrentRoomId() ? (
+              <JamSession
+                roomId={jamSessionService.getCurrentRoomId() || ''}
+                onClose={() => setIsJamSessionOpen(false)}
+              />
+            ) : (
+              <div className="container mx-auto px-4 py-8">
+                <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
+                  <h2 className="text-2xl font-bold mb-6 text-black">
+                    {t('jam.title')}
+                  </h2>
+                  <div className="space-y-4">
+                    <button
+                      onClick={handleCreateSession}
+                      disabled={isCreatingSession}
+                      className="w-full p-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {isCreatingSession ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                          {t('jam.creating')}
+                        </div>
+                      ) : (
+                        t('jam.createNew')
+                      )}
+                    </button>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-gray-500">
+                          {t('jam.or')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-2">
+                        {t('jam.haveInvite')}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsJamSessionOpen(false);
+                          router.push('/jam');
+                        }}
+                        className="text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        {t('jam.joinExisting')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

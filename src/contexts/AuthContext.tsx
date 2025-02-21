@@ -32,13 +32,63 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { t } = useTranslation();
 
+  // Fonction pour vérifier le token et récupérer les informations utilisateur
+  const verifyTokenAndGetUser = async (token: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/getMe`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Invalid token');
+      }
+
+      const userData = await response.json();
+      return userData;
+    } catch (error) {
+      console.error('Error verifying token:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
-    checkAuth();
-    setupTokenRefresh();
+    console.log('AuthProvider initializing...');
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      console.log('Stored credentials:', {
+        hasToken: !!token,
+      });
+
+      if (token) {
+        try {
+          const userData = await verifyTokenAndGetUser(token);
+          console.log('User data retrieved:', userData);
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('userId', userData.id.toString());
+          localStorage.setItem('username', userData.username);
+        } catch (error) {
+          console.error('Error during initialization:', error);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('username');
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const checkAuth = async () => {
@@ -47,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (!accessToken || !refreshToken) {
-        setIsLoading(false);
+        setLoading(false);
         setUser(null);
         return;
       }
@@ -97,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       logout();
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -155,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login...');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
         {
@@ -175,8 +226,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken,
         refreshToken,
       } = await response.json();
+
+      // Stocker toutes les informations nécessaires
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('userId', userData.id.toString());
+      localStorage.setItem('username', userData.username);
+
       setUser(userData);
       router.push('/');
     } catch (error) {
@@ -221,7 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     isAuthenticated: !!user,
-    isLoading,
+    isLoading: loading,
     login,
     register,
     logout,

@@ -5,6 +5,8 @@ import type { AppProps } from 'next/app';
 import { ApolloProvider } from '@apollo/client';
 import { client } from '@/lib/apollo';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { SocketProvider } from '@/contexts/SocketContext';
+import { AudioProvider } from '@/contexts/AudioContext';
 import App from 'next/app';
 import OfflineWrapper from '@/components/OfflineWrapper';
 import { useEffect } from 'react';
@@ -23,11 +25,15 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ApolloProvider client={client}>
       <AuthProvider>
-        <OfflineWrapper>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </OfflineWrapper>
+        <SocketProvider>
+          <AudioProvider>
+            <OfflineWrapper>
+              <Layout>
+                <Component {...pageProps} />
+              </Layout>
+            </OfflineWrapper>
+          </AudioProvider>
+        </SocketProvider>
       </AuthProvider>
     </ApolloProvider>
   );

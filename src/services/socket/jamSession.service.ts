@@ -108,9 +108,28 @@ class JamSessionService {
 
     const token = this.getToken();
     const userId = localStorage.getItem('userId');
+    const username = localStorage.getItem('username');
+    const user = localStorage.getItem('user');
+
+    console.log('Initializing socket with credentials:', {
+      hasToken: !!token,
+      userId,
+      username,
+      hasUser: !!user,
+      roomId: this.roomId,
+    });
+
+    if (!token || !userId || !username) {
+      console.error('Missing authentication credentials');
+      if (this.events?.onError) {
+        this.events.onError('Missing authentication credentials');
+      }
+      return;
+    }
 
     try {
       if (this.socket) {
+        console.log('Cleaning up existing socket connection');
         this.socket.removeAllListeners();
         this.socket.disconnect();
         this.socket = null;
@@ -125,32 +144,37 @@ class JamSessionService {
         }
       }, this.CONNECTION_TIMEOUT);
 
-      this.socket = io(
-        process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080',
-        {
-          transports: ['websocket', 'polling'],
-          autoConnect: false,
-          reconnection: true,
-          reconnectionAttempts: this.maxReconnectAttempts,
-          reconnectionDelay: 1000,
-          timeout: this.CONNECTION_TIMEOUT,
-          auth: {
-            token,
-            userId: userId ? Number(userId) : null,
-            roomId: this.roomId,
-            isGuest,
-          },
+      const socketUrl =
+        process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080';
+      console.log('Connecting to socket server:', socketUrl);
+
+      this.socket = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        autoConnect: false,
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: 1000,
+        timeout: this.CONNECTION_TIMEOUT,
+        auth: {
+          token,
+          userId: Number(userId),
+          username,
+          roomId: this.roomId,
+          isGuest,
         },
-      );
+      });
 
       this.setupSocketListeners();
       this.socket.connect();
 
-      console.log('Socket initialized and connecting...');
+      console.log('Socket initialized and attempting connection...');
     } catch (error) {
       console.error('Error initializing socket:', error);
       if (this.connectionTimeout) {
         clearTimeout(this.connectionTimeout);
+      }
+      if (this.events?.onError) {
+        this.events.onError('Failed to initialize socket connection');
       }
       throw new Error('Failed to initialize socket connection');
     }
@@ -366,6 +390,12 @@ class JamSessionService {
   ): Promise<string> {
     try {
       const token = this.getToken();
+      console.log(
+        'Creating session with API URL:',
+        process.env.NEXT_PUBLIC_API_URL,
+      );
+      console.log('Token:', token);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam`, {
         method: 'POST',
         headers: {
@@ -380,14 +410,17 @@ class JamSessionService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create jam session');
+        const errorData = await response.json().catch(() => null);
+        console.error('Server response:', errorData);
+        throw new Error(`Failed to create jam session: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Session created successfully:', data);
       return data.id;
     } catch (error) {
       console.error('Failed to create jam session:', error);
-      throw new Error('Failed to create jam session');
+      throw error;
     }
   }
 

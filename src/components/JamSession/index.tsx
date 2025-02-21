@@ -7,22 +7,41 @@ import {
   MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 import { useAudio } from '@/contexts/AudioContext';
-import jamSessionService from '@/services/socket/jamSession.service';
+import { useSocket } from '@/contexts/SocketContext';
 import { Track } from '@/types/audio';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import MusicPlayer from '@/components/MusicPlayer';
+
+const AVAILABLE_INSTRUMENTS = [
+  { id: 'guitar', name: 'Guitare' },
+  { id: 'bass', name: 'Basse' },
+  { id: 'drums', name: 'Batterie' },
+  { id: 'keyboard', name: 'Clavier' },
+  { id: 'vocals', name: 'Voix' },
+  { id: 'other', name: 'Autre' },
+];
 
 interface Participant {
-  id: string;
-  userId?: string;
+  userId: string;
   username: string;
-  avatar?: string;
+  role: string;
   instrument?: string;
-  role: 'host' | 'participant';
   ready?: boolean;
+  User?: {
+    username: string;
+  };
 }
 
-interface RoomState {
+interface JamRoomDetails {
+  id: string;
+  name: string;
+  description: string;
+  maxParticipants: number;
+  creator: {
+    id: string;
+    username: string;
+  };
   participants: Participant[];
   currentTrack?: Track;
   isPlaying: boolean;
@@ -30,13 +49,15 @@ interface RoomState {
 }
 
 interface JamSessionProps {
-  isOpen: boolean;
-  onClose: () => void;
+  roomId: string;
+  onClose?: () => void;
 }
 
-export default function JamSession({ isOpen, onClose }: JamSessionProps) {
+export default function JamSession({ roomId, onClose }: JamSessionProps) {
   const { t } = useTranslation('common');
   const { user } = useAuth();
+  const { connectToRoom, disconnectFromRoom, socket, isConnected, emitEvent } =
+    useSocket();
   const {
     currentTrack,
     isPlaying,
@@ -47,237 +68,148 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
     playTrack,
   } = useAudio();
 
+  const [room, setRoom] = useState<JamRoomDetails | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const [selectedInstrument, setSelectedInstrument] = useState('');
+  const [isReady, setIsReady] = useState(false);
+  const [reactions, setReactions] = useState<
+    { type: string; username: string }[]
+  >([]);
   const [isCopied, setIsCopied] = useState(false);
-  const [isHost, setIsHost] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [sessionName, setSessionName] = useState('');
-  const [sessionDescription, setSessionDescription] = useState('');
-  const [maxParticipants, setMaxParticipants] = useState(10);
-  const [instrument, setInstrument] = useState('');
-  const [showInstrumentModal, setShowInstrumentModal] = useState(false);
-  const [isGuest, setIsGuest] = useState(!user);
+  const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Effet d'initialisation unique
   useEffect(() => {
-    if (isOpen) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const inviteRoomId = urlParams.get('roomId');
+    if (!roomId || !user || isInitialized) return;
 
-      if (inviteRoomId) {
-        joinExistingSession(inviteRoomId);
-      } else if (!jamSessionService.isInSession()) {
-        setShowCreateModal(true);
-      }
+    console.log('Initializing JamSession with:', {
+      roomId,
+      userId: user.id,
+      isConnected,
+    });
+
+    setIsInitialized(true);
+    setIsLoading(true);
+    setError(null);
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setError(t('jam.errors.unauthorized'));
+      return;
     }
+
+    // Connexion socket
+    connectToRoom(roomId);
+
+    // Récupération des détails de la room
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam/${roomId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log('Room details received:', data);
+        setRoom(data);
+        setParticipants(data.participants);
+
+        if (data.currentTrack) {
+          setCurrentTrack(data.currentTrack);
+          setIsPlaying(data.isPlaying);
+          setCurrentTime(data.progress);
+        }
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch room details:', error);
+        setError(t('jam.errors.fetchFailed'));
+        setIsLoading(false);
+      });
+
     return () => {
-      if (jamSessionService.isInSession()) {
-        jamSessionService.leaveSession();
-      }
+      console.log('Cleaning up JamSession');
+      disconnectFromRoom();
     };
-  }, [isOpen]);
+  }, [roomId, user, isInitialized]);
 
+  // Effet pour les événements socket
   useEffect(() => {
-    if (roomId) {
-      checkHostStatus();
-    }
-  }, [roomId]);
+    if (!socket) return;
 
-  const checkHostStatus = async () => {
-    try {
-      const hostStatus = await jamSessionService.isSessionHost();
-      setIsHost(hostStatus);
-    } catch (error) {
-      console.error('Failed to check host status:', error);
-    }
-  };
+    console.log('Setting up socket event listeners');
 
-  const handleRoomState = (state: RoomState) => {
-    console.log('handleRoomState', state);
+    const handleParticipantsUpdate = (data: {
+      participants: Participant[];
+    }) => {
+      console.log('Participants update received:', data);
+      setParticipants(data.participants);
+    };
 
-    setParticipants(state.participants || []);
+    const handleRoomState = (state: JamRoomDetails) => {
+      console.log('Room state received:', state);
+      setRoom(state);
+      setParticipants(state.participants);
 
-    // Mise à jour de la piste actuelle si elle est différente
-    if (
-      state.currentTrack &&
-      (!currentTrack || state.currentTrack.id !== currentTrack.id)
-    ) {
-      setCurrentTrack(state.currentTrack);
-      if (!isHost) {
+      if (
+        state.currentTrack &&
+        (!currentTrack || state.currentTrack.id !== currentTrack.id)
+      ) {
+        setCurrentTrack(state.currentTrack);
         playTrack(state.currentTrack);
       }
-    }
 
-    // Mise à jour de l'état de lecture si différent
-    if (state.isPlaying !== isPlaying) {
       setIsPlaying(state.isPlaying);
-    }
-
-    // Mise à jour de la progression si la différence est significative
-    if (Math.abs(state.progress - currentTime) > 1) {
       setCurrentTime(state.progress);
-    }
+    };
 
-    setIsLoading(false);
-  };
+    const handleReaction = (data: { type: string; username: string }) => {
+      console.log('Reaction received:', data);
+      setReactions((prev) => [...prev, data]);
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r !== data));
+      }, 3000);
+    };
 
-  const handleCreateSession = async () => {
-    setIsLoading(true);
-    try {
-      const newRoomId = await jamSessionService.createSession(
-        sessionName,
-        sessionDescription,
-        maxParticipants,
-      );
-      setRoomId(newRoomId);
-      setIsHost(true);
-      setShowCreateModal(false);
+    socket.on('participants:update', handleParticipantsUpdate);
+    socket.on('room:state', handleRoomState);
+    socket.on('jam:reaction', handleReaction);
 
-      await jamSessionService.joinSession(
-        newRoomId,
-        {
-          onParticipantJoined: handleParticipantJoined,
-          onParticipantLeft: handleParticipantLeft,
-          onPlaybackStateChanged: handlePlaybackStateChanged,
-          onTrackChanged: handleTrackChanged,
-          onProgressChanged: handleProgressChanged,
-          onError: handleError,
-          onRoomState: handleRoomState,
-          onReaction: handleReaction,
-        },
-        false,
-      );
+    return () => {
+      socket.off('participants:update', handleParticipantsUpdate);
+      socket.off('room:state', handleRoomState);
+      socket.off('jam:reaction', handleReaction);
+    };
+  }, [socket, currentTrack]);
 
-      // Initialize session with current playback state
-      if (currentTrack) {
-        jamSessionService.updateTrack(currentTrack);
-        jamSessionService.updatePlaybackState(isPlaying);
-        jamSessionService.updateProgress(currentTime);
-      }
-    } catch (error) {
-      console.error('Failed to create jam session:', error);
-      toast.error(t('jam.errors.createFailed'));
-      onClose();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const joinExistingSession = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      await jamSessionService.joinSession(
-        roomId,
-        {
-          onParticipantJoined: handleParticipantJoined,
-          onParticipantLeft: handleParticipantLeft,
-          onPlaybackStateChanged: handlePlaybackStateChanged,
-          onTrackChanged: handleTrackChanged,
-          onProgressChanged: handleProgressChanged,
-          onError: handleError,
-          onRoomState: handleRoomState,
-          onReaction: handleReaction,
-        },
-        isGuest,
-      );
-
-      setRoomId(roomId);
-      setShowCreateModal(false);
-    } catch (error) {
-      console.error('Failed to join session:', error);
-      toast.error(t('jam.errors.joinFailed'));
-      onClose();
-    }
-  };
-
-  const handleParticipantJoined = (participant: Participant) => {
-    setParticipants((prev) => {
-      // Vérifier si le participant n'est pas déjà dans la liste
-      if (!prev.find((p) => p.id === participant.id)) {
-        return [...prev, participant];
-      }
-      return prev;
+  const handleInstrumentChange = (instrument: string) => {
+    setSelectedInstrument(instrument);
+    emitEvent('participant:update', {
+      roomId,
+      userId: user?.id,
+      instrument,
     });
-    toast.success(
-      t('jam.participantJoined', { username: participant.username }),
-    );
+    toast.success(t('jam.instrumentChanged', { instrument }));
   };
 
-  const handleParticipantLeft = (participantId: string) => {
-    setParticipants((prev) => {
-      const participant = prev.find((p) => p.id === participantId);
-      if (participant) {
-        toast(t('jam.participantLeft', { username: participant.username }), {
-          icon: '👋',
-        });
-      }
-      return prev.filter((p) => p.id !== participantId);
+  const toggleReady = () => {
+    const newReadyState = !isReady;
+    setIsReady(newReadyState);
+    emitEvent('participant:ready', {
+      roomId,
+      userId: user?.id,
+      ready: newReadyState,
     });
-  };
-
-  const handlePlaybackStateChanged = (newIsPlaying: boolean) => {
-    setIsPlaying(newIsPlaying);
-    if (isHost) {
-      jamSessionService.updatePlaybackControl({
-        action: newIsPlaying ? 'play' : 'pause',
-      });
-    }
-  };
-
-  const handleTrackChanged = (track: Track) => {
-    if (track && track.id !== currentTrack?.id) {
-      setCurrentTrack(track);
-      if (!isHost) {
-        playTrack(track);
-      } else {
-        jamSessionService.updatePlaybackControl({
-          action: 'track',
-          trackId: track.id,
-        });
-      }
-    }
-  };
-
-  const handleProgressChanged = (progress: number) => {
-    if (Math.abs(currentTime - progress) > 1) {
-      setCurrentTime(progress);
-      if (isHost) {
-        jamSessionService.updatePlaybackControl({
-          action: 'seek',
-          time: progress,
-        });
-      }
-    }
-  };
-
-  const handleError = (error: string) => {
-    toast.error(error);
-  };
-
-  const handleUpdateInstrument = async () => {
-    try {
-      await jamSessionService.updateInstrument(instrument);
-      setShowInstrumentModal(false);
-      toast.success(t('jam.instrumentUpdated'));
-    } catch (error) {
-      toast.error(t('jam.errors.instrumentUpdateFailed'));
-    }
-  };
-
-  const handleCloseSession = async () => {
-    try {
-      await jamSessionService.closeSession();
-      toast.success(t('jam.sessionClosed'));
-      onClose();
-    } catch (error) {
-      toast.error(t('jam.errors.closeFailed'));
-    }
+    toast.success(newReadyState ? t('jam.ready') : t('jam.notReady'));
   };
 
   const copyInviteLink = async () => {
-    if (!roomId) return;
-
     const inviteLink = `${window.location.origin}/jam/${roomId}`;
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -290,311 +222,195 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
     }
   };
 
-  const handleReaction = (data: { type: string; username: string }) => {
-    toast(t('jam.reaction', { username: data.username, type: data.type }), {
-      icon: data.type,
-    });
-  };
-
-  const sendReaction = (type: string) => {
-    jamSessionService.sendReaction(type);
-  };
-
-  const toggleReady = () => {
-    const newReadyState = !participants.find(
-      (p) => p.userId === localStorage.getItem('userId'),
-    )?.ready;
-    jamSessionService.updateReadyState(newReadyState);
-  };
-
-  if (!isOpen) return null;
-
-  if (showCreateModal) {
+  if (error) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            {t('jam.createSession')}
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('jam.sessionName')}
-              </label>
-              <input
-                type="text"
-                value={sessionName}
-                onChange={(e) => setSessionName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('jam.sessionDescription')}
-              </label>
-              <textarea
-                value={sessionDescription}
-                onChange={(e) => setSessionDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600"
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('jam.maxParticipants')}
-              </label>
-              <input
-                type="number"
-                value={maxParticipants}
-                onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                min={2}
-                max={50}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              onClick={() => {
-                setShowCreateModal(false);
-                onClose();
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-            >
-              {t('actions.cancel')}
-            </button>
-            <button
-              onClick={handleCreateSession}
-              disabled={!sessionName}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t('actions.create')}
-            </button>
-          </div>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="text-red-600 mb-4">{error}</div>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+        >
+          {t('actions.close')}
+        </button>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !room || !user) {
     return (
-      <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-gray-800 shadow-lg border-l border-gray-200 dark:border-gray-700 z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {t('jam.loading')}...
-          </p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
+
+  const isHost = room.creator.id === user.id;
 
   return (
-    <>
-      <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-gray-800 shadow-lg border-l border-gray-200 dark:border-gray-700 z-50">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {t('jam.title')}
-            </h2>
-            <div className="flex items-center space-x-2">
-              {isHost && (
-                <button
-                  onClick={handleCloseSession}
-                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  title={t('jam.closeSession')}
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                aria-label={t('actions.close')}
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-
-          {roomId && (
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold mb-2 text-black">{room.name}</h1>
             <button
               onClick={copyInviteLink}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
             >
               <ShareIcon className="w-5 h-5" />
               <span>
                 {isCopied ? t('jam.linkCopied') : t('jam.copyInviteLink')}
               </span>
             </button>
+          </div>
+          <p className="text-black">{room.description}</p>
+          {isHost && (
+            <div className="mt-4">
+              <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                {t('jam.host')}
+              </span>
+            </div>
           )}
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <UsersIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                {t('jam.participants')} ({participants.length})
-              </h3>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowInstrumentModal(true)}
-                className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-                title={t('jam.setInstrument')}
-              >
-                <MusicalNoteIcon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => sendReaction('👋')}
-                className="text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                title={t('jam.wave')}
-              >
-                👋
-              </button>
-            </div>
-          </div>
+        {/* Music Player Section */}
+        <div className="mb-8">
+          <MusicPlayer roomId={roomId} isHost={isHost} />
+        </div>
 
-          <div className="space-y-3">
-            {/* Current user */}
-            <div className="flex items-center space-x-3">
-              {user?.image_url && (
-                <img
-                  src={user.image_url.urls.medium.webp}
-                  alt={user.username}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user?.username || t('jam.anonymous')}
-                </p>
-                <div className="flex items-center space-x-2">
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
-                    {isHost ? t('jam.host') : t('jam.you')}
-                  </p>
-                  {instrument && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      • {instrument}
-                    </p>
-                  )}
-                  <button
-                    onClick={toggleReady}
-                    className={`text-xs px-2 py-1 rounded ${
-                      participants.find(
-                        (p) => p.userId === localStorage.getItem('userId'),
-                      )?.ready
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {participants.find(
-                      (p) => p.userId === localStorage.getItem('userId'),
-                    )?.ready
-                      ? t('jam.ready')
-                      : t('jam.notReady')}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Other participants */}
-            {participants
-              .filter((p) => p.userId !== localStorage.getItem('userId'))
-              .map((participant) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Participants Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h2 className="text-xl font-semibold mb-4 text-black">
+              {t('jam.participants')} ({participants.length}/
+              {room.maxParticipants})
+            </h2>
+            <div className="space-y-3">
+              {participants.map((participant) => (
                 <div
                   key={participant.userId}
-                  className="flex items-center space-x-3"
+                  className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm"
                 >
-                  {participant.avatar ? (
-                    <img
-                      src={participant.avatar}
-                      alt={participant.username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {participant.username[0]}
+                  <div>
+                    <span className="font-medium text-black">
+                      {participant.User?.username || participant.username}
+                    </span>
+                    <span className="text-sm text-black ml-2">
+                      ({participant.role})
+                    </span>
+                    {participant.ready && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        {t('jam.ready')}
                       </span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900 dark:text-white">
-                      {participant.username}
-                    </p>
-                    <div className="flex items-center space-x-2">
-                      {participant.instrument && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {participant.instrument}
-                        </p>
-                      )}
-                      <span
-                        className={`inline-block w-2 h-2 rounded-full ${
-                          participant.ready
-                            ? 'bg-green-500'
-                            : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
-                      />
-                    </div>
+                    )}
                   </div>
+                  {participant.instrument && (
+                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {participant.instrument}
+                    </span>
+                  )}
                 </div>
               ))}
-          </div>
-        </div>
-
-        {currentTrack && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                {t('jam.nowPlaying')}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {currentTrack.title} - {currentTrack.artist}
-              </p>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Instrument Modal */}
-      {showInstrumentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('jam.setInstrument')}
+          {/* Controls Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h2 className="text-xl font-semibold mb-4 text-black">
+              {t('jam.controls')}
             </h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('jam.instrument')}
-              </label>
-              <input
-                type="text"
-                value={instrument}
-                onChange={(e) => setInstrument(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:border-gray-600"
-                placeholder={t('jam.instrumentPlaceholder')}
-              />
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowInstrumentModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              >
-                {t('actions.cancel')}
-              </button>
-              <button
-                onClick={handleUpdateInstrument}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                {t('actions.save')}
-              </button>
-            </div>
+            {isConnected ? (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span className="text-sm text-green-600">
+                    {t('jam.connected')}
+                  </span>
+                </div>
+
+                {/* Instrument Selection */}
+                <div>
+                  <h3 className="text-lg font-medium mb-3 text-black">
+                    {t('jam.selectInstrument')}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {AVAILABLE_INSTRUMENTS.map((instrument) => (
+                      <button
+                        key={instrument.id}
+                        onClick={() => handleInstrumentChange(instrument.id)}
+                        className={`p-2 rounded-md transition-colors ${
+                          selectedInstrument === instrument.id
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 hover:bg-gray-200 text-black'
+                        }`}
+                      >
+                        {instrument.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ready Toggle */}
+                <div>
+                  <button
+                    onClick={toggleReady}
+                    className={`w-full p-3 rounded-md transition-colors ${
+                      isReady
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                    }`}
+                  >
+                    {isReady ? t('jam.ready') : t('jam.notReady')}
+                  </button>
+                </div>
+
+                {/* Quick Actions */}
+                <div>
+                  <h3 className="text-lg font-medium mb-3 text-black">
+                    {t('jam.quickActions')}
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() =>
+                        emitEvent('jam:reaction', { type: 'applause' })
+                      }
+                      className="w-full p-2 bg-gray-100 rounded-md hover:bg-gray-200 text-black"
+                    >
+                      👏 {t('jam.applaud')}
+                    </button>
+                    <button
+                      onClick={() =>
+                        emitEvent('jam:reaction', { type: 'encore' })
+                      }
+                      className="w-full p-2 bg-gray-100 rounded-md hover:bg-gray-200 text-black"
+                    >
+                      🎵 {t('jam.requestEncore')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                <span className="text-sm text-red-600">
+                  {t('jam.disconnected')}
+                </span>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </>
+
+        {/* Reactions */}
+        <div className="fixed bottom-4 right-4 flex flex-col-reverse items-end space-y-reverse space-y-2">
+          {reactions.map((reaction, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow-lg px-4 py-2 animate-fade-in-up text-black"
+            >
+              {reaction.type === 'applause' ? '👏' : '🎵'} {reaction.username}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
