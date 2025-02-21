@@ -1,78 +1,71 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { Track } from '@/types/track';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { Track } from '@/types/audio';
 
-export interface AudioContextType {
+interface AudioContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
+  currentTime: number;
   queue: Track[];
+  setQueue: (tracks: Track[]) => void;
   setCurrentTrack: (track: Track | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  setCurrentTime: (time: number) => void;
   playTrack: (track: Track) => void;
-  addToQueue: (track: Track) => void;
+  togglePlayPause: () => void;
+  setIsTrackChanging: (isChanging: boolean) => void;
   removeFromQueue: (trackId: number) => void;
   clearQueue: () => void;
-  currentTime: number;
-  setCurrentTime: (time: number) => void;
-  isTrackChanging: boolean;
-  setIsTrackChanging: (isChanging: boolean) => void;
-  setQueue: (tracks: Track[]) => void;
-  togglePlayPause: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [queue, setQueue] = useState<Track[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [isTrackChanging, setIsTrackChanging] = useState(false);
+  const [queue, setQueue] = useState<Track[]>([]);
 
-  const playTrack = (track: Track) => {
+  const playTrack = useCallback((track: Track) => {
     setCurrentTrack(track);
     setIsPlaying(true);
-  };
+    setCurrentTime(0);
+  }, []);
 
-  const addToQueue = (track: Track) => {
-    setQueue((prevQueue) => [...prevQueue, track]);
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
   };
 
   const removeFromQueue = (trackId: number) => {
-    setQueue((prevQueue) => prevQueue.filter((track) => track.id !== trackId));
+    setQueue(queue.filter((track) => track.id !== trackId));
   };
 
   const clearQueue = () => {
     setQueue([]);
   };
 
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const value = {
-    currentTrack,
-    isPlaying,
-    queue,
-    setCurrentTrack,
-    setIsPlaying,
-    playTrack,
-    addToQueue,
-    removeFromQueue,
-    clearQueue,
-    currentTime,
-    setCurrentTime,
-    isTrackChanging,
-    setIsTrackChanging,
-    setQueue,
-    togglePlayPause,
-  };
-
   return (
-    <AudioContext.Provider value={value}>{children}</AudioContext.Provider>
+    <AudioContext.Provider
+      value={{
+        currentTrack,
+        isPlaying,
+        currentTime,
+        queue,
+        setQueue,
+        setCurrentTrack,
+        setIsPlaying,
+        setCurrentTime,
+        playTrack,
+        togglePlayPause,
+        setIsTrackChanging,
+        clearQueue,
+        removeFromQueue,
+      }}
+    >
+      {children}
+    </AudioContext.Provider>
   );
-};
+}
 
 export function useAudio() {
   const context = useContext(AudioContext);

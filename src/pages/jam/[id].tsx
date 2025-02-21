@@ -7,122 +7,91 @@ import { useAuth } from '@/contexts/AuthContext';
 import jamSessionService from '@/services/socket/jamSession.service';
 import { toast } from 'react-hot-toast';
 
-export async function getServerSideProps({
-  locale,
-  params,
-}: {
-  locale: string;
-  params: { id: string };
-}) {
+export async function getStaticPaths() {
+  return {
+    paths: [],
+    fallback: true,
+  };
+}
+
+export async function getStaticProps({ locale }: { locale: string }) {
   return {
     props: {
-      jamSessionId: params.id,
       ...(await serverSideTranslations(locale, ['common'])),
     },
   };
 }
 
-interface JamSessionPageProps {
-  jamSessionId: string;
-}
-
-export default function JamSessionPage({ jamSessionId }: JamSessionPageProps) {
+export default function JamSessionPage() {
   const router = useRouter();
+  const { id } = router.query;
   const { t } = useTranslation('common');
   const { user } = useAuth();
-  const [isConnecting, setIsConnecting] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState('checking');
 
   useEffect(() => {
-    let mounted = true;
+    if (!user) {
+      setConnectionStatus('unauthorized');
+      router.push('/auth/login');
+      return;
+    }
 
-    const connect = async () => {
-      if (!jamSessionId) return;
+    if (id && typeof id === 'string') {
+      setConnectionStatus('connecting');
+      joinSession(id);
+    }
+  }, [id, user]);
 
-      try {
-        setIsConnecting(true);
-        setError(null);
+  const joinSession = async (roomId: string) => {
+    try {
+      setConnectionStatus('joining');
+      jamSessionService.joinSession(roomId, {
+        onParticipantJoined: (participant) => {
+          toast.success(
+            t('jam.participantJoined', { username: participant.username }),
+          );
+        },
+        onParticipantLeft: () => {},
+        onPlaybackStateChanged: () => {},
+        onTrackChanged: () => {},
+        onProgressChanged: () => {},
+        onError: (error) => {
+          setConnectionStatus('error');
+          toast.error(error);
+        },
+        onRoomState: () => {
+          setConnectionStatus('connected');
+        },
+      });
 
-        await jamSessionService.joinSession(
-          jamSessionId,
-          {
-            onParticipantJoined: (participant) => {
-              if (mounted) {
-                toast.success(
-                  t('jam.participantJoined', {
-                    username: participant.username,
-                  }),
-                );
-              }
-            },
-            onParticipantLeft: () => {},
-            onPlaybackStateChanged: () => {},
-            onTrackChanged: () => {},
-            onProgressChanged: () => {},
-            onError: (error) => {
-              if (mounted) {
-                setError(error);
-                toast.error(error);
-              }
-            },
-          },
-          !user,
-        );
-
-        if (mounted) {
-          // Redirect to home page with jam session active
-          router.push('/?jam=true');
-        }
-      } catch (error) {
-        if (mounted) {
-          console.error('Failed to join jam session:', error);
-          setError(t('jam.errors.joinFailed'));
-          toast.error(t('jam.errors.joinFailed'));
-
-          // Attendre un peu avant de rediriger
-          setTimeout(() => {
-            if (mounted) {
-              router.push('/');
-            }
-          }, 3000);
-        }
-      } finally {
-        if (mounted) {
-          setIsConnecting(false);
-        }
-      }
-    };
-
-    connect();
-
-    return () => {
-      mounted = false;
-    };
-  }, [jamSessionId, user, router, t]);
+      // Redirect to home page with jam session active
+      router.push('/?jam=true');
+    } catch (error) {
+      console.error('Failed to join jam session:', error);
+      setConnectionStatus('error');
+      toast.error(t('jam.errors.joinFailed'));
+      router.push('/');
+    }
+  };
 
   return (
     <>
       <Head>
-        <title>{error ? t('jam.error') : t('jam.joining')} | ZakHarmony</title>
+        <title>{t('jam.joining')} | ZakHarmony</title>
       </Head>
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          {isConnecting && !error && (
-            <>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t('jam.joining')}...
-              </p>
-            </>
-          )}
-          {error && (
-            <div className="text-red-600 dark:text-red-400">
-              <p className="text-lg font-semibold mb-2">
-                {t('jam.connectionError')}
-              </p>
-              <p>{error}</p>
-              <p className="text-sm mt-2">{t('jam.redirecting')}...</p>
-            </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">
+            {t(`jam.status.${connectionStatus}`)}
+          </p>
+          {connectionStatus === 'error' && (
+            <button
+              onClick={() => id && typeof id === 'string' && joinSession(id)}
+              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            >
+              {t('jam.retry')}
+            </button>
           )}
         </div>
       </div>

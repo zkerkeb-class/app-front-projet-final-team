@@ -12,36 +12,10 @@ import { useEffect } from 'react';
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      // Enregistrer ou mettre à jour le service worker
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((registration) => {
-          // Vérifier et appliquer les mises à jour
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (
-                  newWorker.state === 'installed' &&
-                  navigator.serviceWorker.controller
-                ) {
-                  // Nouveau service worker disponible
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('Service worker registration failed:', error);
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+          console.error('Service worker registration failed:', err);
         });
-
-      // Gérer les mises à jour du service worker
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (window.location.pathname.startsWith('/jam/')) {
-          // Recharger la page uniquement si nous sommes sur une route jam
-          window.location.reload();
-        }
       });
     }
   }, []);

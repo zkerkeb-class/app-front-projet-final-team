@@ -14,10 +14,19 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface Participant {
   id: string;
+  userId?: string;
   username: string;
   avatar?: string;
   instrument?: string;
   role: 'host' | 'participant';
+  ready?: boolean;
+}
+
+interface RoomState {
+  participants: Participant[];
+  currentTrack?: Track;
+  isPlaying: boolean;
+  progress: number;
 }
 
 interface JamSessionProps {
@@ -84,15 +93,33 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
     }
   };
 
-  const handleRoomState = (state: any) => {
+  const handleRoomState = (state: RoomState) => {
     console.log('handleRoomState', state);
 
     setParticipants(state.participants || []);
-    if (state.currentTrack) {
+
+    // Mise à jour de la piste actuelle si elle est différente
+    if (
+      state.currentTrack &&
+      (!currentTrack || state.currentTrack.id !== currentTrack.id)
+    ) {
       setCurrentTrack(state.currentTrack);
+      if (!isHost) {
+        playTrack(state.currentTrack);
+      }
     }
-    setIsPlaying(state.isPlaying);
-    setCurrentTime(state.progress);
+
+    // Mise à jour de l'état de lecture si différent
+    if (state.isPlaying !== isPlaying) {
+      setIsPlaying(state.isPlaying);
+    }
+
+    // Mise à jour de la progression si la différence est significative
+    if (Math.abs(state.progress - currentTime) > 1) {
+      setCurrentTime(state.progress);
+    }
+
+    setIsLoading(false);
   };
 
   const handleCreateSession = async () => {
@@ -117,6 +144,7 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
           onProgressChanged: handleProgressChanged,
           onError: handleError,
           onRoomState: handleRoomState,
+          onReaction: handleReaction,
         },
         false,
       );
@@ -149,6 +177,7 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
           onProgressChanged: handleProgressChanged,
           onError: handleError,
           onRoomState: handleRoomState,
+          onReaction: handleReaction,
         },
         isGuest,
       );
@@ -159,8 +188,6 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
       console.error('Failed to join session:', error);
       toast.error(t('jam.errors.joinFailed'));
       onClose();
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -191,17 +218,36 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
 
   const handlePlaybackStateChanged = (newIsPlaying: boolean) => {
     setIsPlaying(newIsPlaying);
+    if (isHost) {
+      jamSessionService.updatePlaybackControl({
+        action: newIsPlaying ? 'play' : 'pause',
+      });
+    }
   };
 
   const handleTrackChanged = (track: Track) => {
     if (track && track.id !== currentTrack?.id) {
-      playTrack(track);
+      setCurrentTrack(track);
+      if (!isHost) {
+        playTrack(track);
+      } else {
+        jamSessionService.updatePlaybackControl({
+          action: 'track',
+          trackId: track.id,
+        });
+      }
     }
   };
 
   const handleProgressChanged = (progress: number) => {
     if (Math.abs(currentTime - progress) > 1) {
       setCurrentTime(progress);
+      if (isHost) {
+        jamSessionService.updatePlaybackControl({
+          action: 'seek',
+          time: progress,
+        });
+      }
     }
   };
 
@@ -242,6 +288,23 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
       console.error('Failed to copy invite link:', error);
       toast.error(t('jam.errors.copyFailed'));
     }
+  };
+
+  const handleReaction = (data: { type: string; username: string }) => {
+    toast(t('jam.reaction', { username: data.username, type: data.type }), {
+      icon: data.type,
+    });
+  };
+
+  const sendReaction = (type: string) => {
+    jamSessionService.sendReaction(type);
+  };
+
+  const toggleReady = () => {
+    const newReadyState = !participants.find(
+      (p) => p.userId === localStorage.getItem('userId'),
+    )?.ready;
+    jamSessionService.updateReadyState(newReadyState);
   };
 
   if (!isOpen) return null;
@@ -373,20 +436,29 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
             <div className="flex items-center space-x-2">
               <UsersIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                {t('jam.participants')} ({participants.length + 1})
+                {t('jam.participants')} ({participants.length})
               </h3>
             </div>
-            <button
-              onClick={() => setShowInstrumentModal(true)}
-              className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-              title={t('jam.setInstrument')}
-            >
-              <MusicalNoteIcon className="w-5 h-5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowInstrumentModal(true)}
+                className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                title={t('jam.setInstrument')}
+              >
+                <MusicalNoteIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => sendReaction('👋')}
+                className="text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                title={t('jam.wave')}
+              >
+                👋
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
-            {/* Host (current user) */}
+            {/* Current user */}
             <div className="flex items-center space-x-3">
               {user?.image_url && (
                 <img
@@ -408,38 +480,68 @@ export default function JamSession({ isOpen, onClose }: JamSessionProps) {
                       • {instrument}
                     </p>
                   )}
+                  <button
+                    onClick={toggleReady}
+                    className={`text-xs px-2 py-1 rounded ${
+                      participants.find(
+                        (p) => p.userId === localStorage.getItem('userId'),
+                      )?.ready
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {participants.find(
+                      (p) => p.userId === localStorage.getItem('userId'),
+                    )?.ready
+                      ? t('jam.ready')
+                      : t('jam.notReady')}
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* Other participants */}
-            {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center space-x-3">
-                {participant.avatar ? (
-                  <img
-                    src={participant.avatar}
-                    alt={participant.username}
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {participant.username[0]}
-                    </span>
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    {participant.username}
-                  </p>
-                  {participant.instrument && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {participant.instrument}
-                    </p>
+            {participants
+              .filter((p) => p.userId !== localStorage.getItem('userId'))
+              .map((participant) => (
+                <div
+                  key={participant.userId}
+                  className="flex items-center space-x-3"
+                >
+                  {participant.avatar ? (
+                    <img
+                      src={participant.avatar}
+                      alt={participant.username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {participant.username[0]}
+                      </span>
+                    </div>
                   )}
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {participant.username}
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      {participant.instrument && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {participant.instrument}
+                        </p>
+                      )}
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          participant.ready
+                            ? 'bg-green-500'
+                            : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 

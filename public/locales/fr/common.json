@@ -144,10 +144,22 @@
     "linkCopied": "Lien copié !",
     "participantJoined": "{{username}} a rejoint la session",
     "participantLeft": "{{username}} a quitté la session",
+    "retry": "Réessayer",
+    "status": {
+      "checking": "Vérification de la session...",
+      "unauthorized": "Redirection vers la page de connexion...",
+      "connecting": "Connexion à la session...",
+      "joining": "Rejoindre la session...",
+      "connected": "Connecté !",
+      "error": "Erreur de connexion"
+    },
     "errors": {
       "createFailed": "Impossible de créer la session",
       "joinFailed": "Impossible de rejoindre la session",
-      "copyFailed": "Impossible de copier le lien"
+      "copyFailed": "Impossible de copier le lien",
+      "connectionTimeout": "Délai de connexion dépassé",
+      "roomFull": "La session est pleine",
+      "roomClosed": "La session est fermée ou n'existe pas"
     }
   }
 }

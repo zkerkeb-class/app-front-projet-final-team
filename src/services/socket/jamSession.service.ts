@@ -2,14 +2,25 @@ import { io, Socket } from 'socket.io-client';
 import { Track } from '@/types/audio';
 
 /**
+ * Interface for custom socket with lastError property
+ */
+interface CustomSocket extends Socket {
+  lastError?: {
+    message: string;
+  };
+}
+
+/**
  * Interface for participant data in a jam session
  */
 interface Participant {
   id: string;
+  userId?: string;
   username: string;
   avatar?: string;
   instrument?: string;
   role: 'host' | 'participant';
+  ready?: boolean;
 }
 
 /**
@@ -23,6 +34,15 @@ interface RoomState {
 }
 
 /**
+ * Interface for playback control
+ */
+interface PlaybackControl {
+  action: 'play' | 'pause' | 'seek' | 'track';
+  time?: number;
+  trackId?: number;
+}
+
+/**
  * Interface for jam session events
  */
 interface JamSessionEvents {
@@ -33,6 +53,7 @@ interface JamSessionEvents {
   onProgressChanged: (progress: number) => void;
   onError: (error: string) => void;
   onRoomState?: (state: RoomState) => void;
+  onReaction?: (data: { type: string; username: string }) => void;
 }
 
 /**
@@ -56,13 +77,18 @@ interface JamSessionDetails {
 }
 
 class JamSessionService {
-  private socket: Socket | null = null;
+  private socket: CustomSocket | null = null;
   private roomId: string | null = null;
   private events: JamSessionEvents | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private currentState: RoomState | null = null;
+  private lastEmittedProgress: number = 0;
+  private lastEmittedTrack: number | null = null;
+  private progressDebounceTimeout: NodeJS.Timeout | null = null;
+  private connectionTimeout: NodeJS.Timeout | null = null;
+  private readonly CONNECTION_TIMEOUT = 10000; // 10 secondes
 
   /**
    * Get the authentication token
@@ -87,7 +113,17 @@ class JamSessionService {
       if (this.socket) {
         this.socket.removeAllListeners();
         this.socket.disconnect();
+        this.socket = null;
       }
+
+      // Définir un timeout pour la connexion
+      this.connectionTimeout = setTimeout(() => {
+        if (this.socket && !this.socket.connected) {
+          console.error('Connection timeout');
+          this.socket.disconnect();
+          this.events?.onError('Connection timeout');
+        }
+      }, this.CONNECTION_TIMEOUT);
 
       this.socket = io(
         process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080',
@@ -97,9 +133,11 @@ class JamSessionService {
           reconnection: true,
           reconnectionAttempts: this.maxReconnectAttempts,
           reconnectionDelay: 1000,
+          timeout: this.CONNECTION_TIMEOUT,
           auth: {
             token,
-            userId,
+            userId: userId ? Number(userId) : null,
+            roomId: this.roomId,
             isGuest,
           },
         },
@@ -111,6 +149,9 @@ class JamSessionService {
       console.log('Socket initialized and connecting...');
     } catch (error) {
       console.error('Error initializing socket:', error);
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+      }
       throw new Error('Failed to initialize socket connection');
     }
   }
@@ -123,30 +164,37 @@ class JamSessionService {
 
     this.socket.on('connect', () => {
       console.log('Connected to jam session server');
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+      }
       this.reconnectAttempts = 0;
       if (this.roomId) {
         console.log('Joining room after connect:', this.roomId);
+        const userId = localStorage.getItem('userId');
         this.socket?.emit('room:join', {
           roomId: this.roomId,
-          // Envoyer les informations du participant
-          participant: {
-            id: this.socket?.id,
-            username:
-              localStorage.getItem('username') ||
-              'Guest_' + Math.random().toString(36).substr(2, 6),
-            role: 'participant',
-          },
+          userId: userId ? Number(userId) : null,
+          username: localStorage.getItem('username'),
         });
       }
     });
 
     this.socket.on('connect_error', (error) => {
       console.error('Connection error:', error);
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+      }
+      if (this.socket) {
+        this.socket.lastError = error;
+      }
       this.handleReconnect();
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from jam session server:', reason);
+      if (this.connectionTimeout) {
+        clearTimeout(this.connectionTimeout);
+      }
       if (reason === 'io server disconnect') {
         this.socket?.connect();
       }
@@ -154,7 +202,28 @@ class JamSessionService {
 
     // Room state event
     this.socket.on('room:state', (state: RoomState) => {
-      console.log('Received room:state', state);
+      console.log('Received initial room state:', state);
+      this.currentState = state;
+      if (this.events?.onRoomState) {
+        this.events.onRoomState(state);
+      }
+      // Si on a une piste en cours, on la joue
+      if (state.currentTrack && this.events?.onTrackChanged) {
+        this.events.onTrackChanged(state.currentTrack);
+      }
+      // On met à jour l'état de lecture
+      if (this.events?.onPlaybackStateChanged) {
+        this.events.onPlaybackStateChanged(state.isPlaying);
+      }
+      // On met à jour la progression
+      if (this.events?.onProgressChanged) {
+        this.events.onProgressChanged(state.progress);
+      }
+    });
+
+    // Room state update event
+    this.socket.on('participants:update', (state: RoomState) => {
+      console.log('Received participants:update', state);
       this.currentState = state;
       if (this.events?.onRoomState) {
         this.events.onRoomState(state);
@@ -165,76 +234,111 @@ class JamSessionService {
     this.socket.on('participant:joined', (participant: Participant) => {
       console.log('Participant joined:', participant);
       if (this.currentState) {
-        // Ne pas ajouter si c'est nous-même
-        if (participant.id === this.socket?.id) {
+        if (participant.userId === localStorage.getItem('userId')) {
           return;
         }
-        // Vérifier si le participant n'existe pas déjà
         if (
-          !this.currentState.participants.find((p) => p.id === participant.id)
+          !this.currentState.participants.find(
+            (p) => p.userId === participant.userId,
+          )
         ) {
           this.currentState.participants.push(participant);
           this.events?.onParticipantJoined(participant);
+          // Mettre à jour l'état global de la room
+          if (this.events?.onRoomState) {
+            this.events.onRoomState(this.currentState);
+          }
         }
-      } else {
-        this.currentState = {
-          participants: [participant],
-          isPlaying: false,
-          progress: 0,
-        };
-        this.events?.onParticipantJoined(participant);
       }
     });
 
-    this.socket.on('participant:left', (participantId: string) => {
-      console.log('Participant left:', participantId);
+    this.socket.on('participant:left', ({ userId }: { userId: string }) => {
+      console.log('Participant left:', userId);
       if (this.currentState) {
         const participant = this.currentState.participants.find(
-          (p) => p.id === participantId,
+          (p) => p.userId === userId,
         );
         if (participant) {
           this.currentState.participants =
-            this.currentState.participants.filter(
-              (p) => p.id !== participantId,
-            );
-          this.events?.onParticipantLeft(participantId);
+            this.currentState.participants.filter((p) => p.userId !== userId);
+          this.events?.onParticipantLeft(userId);
+          // Mettre à jour l'état global de la room
+          if (this.events?.onRoomState) {
+            this.events.onRoomState(this.currentState);
+          }
         }
       }
     });
 
     // Playback events
-    this.socket.on('playback:state', (data: { isPlaying: boolean }) => {
-      console.log('Playback state changed:', data);
+    this.socket.on('playback:control', (data: PlaybackControl) => {
+      console.log('Received playback control:', data);
       if (this.currentState) {
-        this.currentState.isPlaying = data.isPlaying;
+        switch (data.action) {
+          case 'play':
+            this.currentState.isPlaying = true;
+            this.events?.onPlaybackStateChanged(true);
+            break;
+          case 'pause':
+            this.currentState.isPlaying = false;
+            this.events?.onPlaybackStateChanged(false);
+            break;
+          case 'seek':
+            if (data.time !== undefined) {
+              this.currentState.progress = data.time;
+              this.events?.onProgressChanged(data.time);
+            }
+            break;
+          case 'track':
+            if (
+              data.trackId !== undefined &&
+              this.currentState.currentTrack?.id !== data.trackId
+            ) {
+              // Mettre à jour la piste actuelle
+              this.events?.onTrackChanged(this.currentState.currentTrack!);
+            }
+            break;
+        }
       }
-      this.events?.onPlaybackStateChanged(data.isPlaying);
     });
 
-    this.socket.on('playback:track', (track: Track) => {
-      console.log('Track changed:', track);
-      if (this.currentState) {
-        this.currentState.currentTrack = track;
-      }
-      this.events?.onTrackChanged(track);
-    });
+    // Reaction events
+    this.socket.on(
+      'jam:reaction',
+      (data: { type: string; username: string }) => {
+        console.log('Received reaction:', data);
+        if (this.events?.onReaction) {
+          this.events.onReaction(data);
+        }
+      },
+    );
 
-    this.socket.on('playback:progress', (data: { progress: number }) => {
-      if (this.currentState) {
-        this.currentState.progress = data.progress;
-      }
-      this.events?.onProgressChanged(data.progress);
-    });
-
-    this.socket.on('error', (error: string) => {
+    this.socket.on('error', (error: any) => {
       console.error('Socket error:', error);
-      this.events?.onError(error);
+      if (this.socket) {
+        this.socket.lastError = error;
+      }
+      if (error.message === 'Room not found or closed') {
+        this.leaveSession();
+      }
+      this.events?.onError(error.message || 'An error occurred');
     });
   }
 
   private handleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.events?.onError('Unable to connect to jam session server');
+      return;
+    }
+
+    // Si la salle n'existe pas ou est fermée, ne pas tenter de reconnexion
+    if (
+      this.socket &&
+      this.socket.disconnected &&
+      this.socket.lastError?.message === 'Room not found or closed'
+    ) {
+      this.events?.onError('Room not found or closed');
+      this.leaveSession();
       return;
     }
 
@@ -262,21 +366,18 @@ class JamSessionService {
   ): Promise<string> {
     try {
       const token = this.getToken();
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name,
-            description,
-            maxParticipants,
-          }),
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          name,
+          description,
+          maxParticipants,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to create jam session');
@@ -298,7 +399,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${roomId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${roomId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -323,14 +424,11 @@ class JamSessionService {
   async getActiveSessions(): Promise<JamSessionDetails[]> {
     try {
       const token = this.getToken();
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jam`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error('Failed to get active sessions');
@@ -345,9 +443,6 @@ class JamSessionService {
 
   /**
    * Join an existing jam session
-   * @param roomId - The room ID to join
-   * @param events - Event handlers for the session
-   * @param isGuest - Whether the user is joining as a guest
    */
   async joinSession(
     roomId: string,
@@ -368,6 +463,17 @@ class JamSessionService {
       const roomDetails = await this.getSessionDetails(roomId);
       console.log('Room details:', roomDetails);
 
+      // Vérifier si la salle existe et est active
+      if (!roomDetails || roomDetails.status === 'closed') {
+        throw new Error('Room not found or closed');
+      }
+
+      // Vérifier si la room n'est pas pleine
+      if (roomDetails.participants.length >= roomDetails.maxParticipants) {
+        throw new Error('Room is full');
+      }
+
+      // Définir les propriétés de la session avant d'initialiser le socket
       this.roomId = roomId;
       this.events = events;
       this.currentState = {
@@ -377,7 +483,7 @@ class JamSessionService {
         progress: roomDetails.progress,
       };
 
-      // Initialiser la connexion socket
+      // Initialiser la connexion socket avec le roomId déjà défini
       this.initializeSocket(isGuest);
 
       // Émettre un événement pour demander l'état actuel de la room
@@ -386,10 +492,13 @@ class JamSessionService {
           console.log('Requesting current room state');
           this.socket.emit('room:request_state', { roomId });
         }
-      }, 1000); // Attendre 1s pour s'assurer que la connexion est établie
+      }, 1000);
     } catch (error) {
       console.error('Failed to join jam session:', error);
-      throw new Error('Failed to join jam session');
+      this.events?.onError(
+        error instanceof Error ? error.message : 'Failed to join jam session',
+      );
+      throw error;
     }
   }
 
@@ -415,7 +524,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${this.roomId}/participant`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${this.roomId}/participant`,
         {
           method: 'PUT',
           headers: {
@@ -446,7 +555,7 @@ class JamSessionService {
     try {
       const token = this.getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/jam-rooms/${this.roomId}/close`,
+        `${process.env.NEXT_PUBLIC_API_URL}/jam/${this.roomId}/close`,
         {
           method: 'PUT',
           headers: {
@@ -468,32 +577,75 @@ class JamSessionService {
   }
 
   /**
-   * Update playback state
-   * @param isPlaying - Whether the track is playing or paused
+   * Update playback control with debouncing and state checking
    */
+  updatePlaybackControl(control: PlaybackControl) {
+    if (!this.socket || !this.roomId) return;
+
+    switch (control.action) {
+      case 'seek':
+        // Debounce seek events and only emit if significant change
+        if (this.progressDebounceTimeout) {
+          clearTimeout(this.progressDebounceTimeout);
+        }
+        if (
+          control.time !== undefined &&
+          Math.abs(this.lastEmittedProgress - control.time) > 1
+        ) {
+          this.progressDebounceTimeout = setTimeout(() => {
+            this.socket?.emit('playback:control', {
+              ...control,
+              roomId: this.roomId,
+            });
+            this.lastEmittedProgress = control.time || 0;
+          }, 500);
+        }
+        break;
+
+      case 'track':
+        // Only emit if track has changed
+        if (control.trackId !== this.lastEmittedTrack) {
+          this.socket.emit('playback:control', {
+            ...control,
+            roomId: this.roomId,
+          });
+          this.lastEmittedTrack = control.trackId || null;
+        }
+        break;
+
+      default:
+        // For play/pause, always emit as these are discrete actions
+        this.socket.emit('playback:control', {
+          ...control,
+          roomId: this.roomId,
+        });
+    }
+  }
+
+  // Remove these deprecated methods as they're replaced by updatePlaybackControl
   updatePlaybackState(isPlaying: boolean) {
     if (this.socket && this.roomId) {
-      this.socket.emit('playback:state', { roomId: this.roomId, isPlaying });
+      this.updatePlaybackControl({
+        action: isPlaying ? 'play' : 'pause',
+      });
     }
   }
 
-  /**
-   * Update current track
-   * @param track - The new track being played
-   */
   updateTrack(track: Track) {
     if (this.socket && this.roomId) {
-      this.socket.emit('playback:track', { roomId: this.roomId, track });
+      this.updatePlaybackControl({
+        action: 'track',
+        trackId: track.id,
+      });
     }
   }
 
-  /**
-   * Update playback progress
-   * @param progress - Current playback position in seconds
-   */
   updateProgress(progress: number) {
     if (this.socket && this.roomId) {
-      this.socket.emit('playback:progress', { roomId: this.roomId, progress });
+      this.updatePlaybackControl({
+        action: 'seek',
+        time: progress,
+      });
     }
   }
 
@@ -520,9 +672,32 @@ class JamSessionService {
     try {
       const details = await this.getSessionDetails(this.roomId);
       const userId = localStorage.getItem('userId');
-      return details.createdBy === Number(userId);
+      return details.createdBy === (userId ? Number(userId) : null);
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Send a reaction in the jam session
+   */
+  sendReaction(type: string) {
+    if (this.socket && this.roomId) {
+      this.socket.emit('jam:reaction', { type });
+    }
+  }
+
+  /**
+   * Update participant's ready state
+   */
+  updateReadyState(ready: boolean) {
+    if (this.socket && this.roomId) {
+      const userId = localStorage.getItem('userId');
+      this.socket.emit('participant:ready', {
+        userId: userId ? Number(userId) : null,
+        roomId: this.roomId,
+        ready,
+      });
     }
   }
 }
